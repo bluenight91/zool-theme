@@ -86,6 +86,7 @@
 | `showOffline` | `true` | 列出离线节点 |
 | `hiddenNodes` | `[]` | 在首页、搜索与节点切换器中隐藏的节点 |
 | `hideAdminEntry` | `false` | 隐藏登录按钮 |
+| `loginMode` | `both` | `both`、`password`、`oauth` 或 `dashboard`（打开面板登录页） |
 | `footerNote` | *（空）* | 页脚的一行文字 |
 
 在 **设置 → 自定义代码** 里写到 `window.ZoolConfig`，或在页面加载前改 `dist/config.js`。自定义代码后执行，并覆盖同名字段。Logo、描述和其余 `window` 变量见 [docs/install-nezha.md](docs/install-nezha.md#custom-code)。

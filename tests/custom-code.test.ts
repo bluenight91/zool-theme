@@ -36,6 +36,8 @@ describe('custom code', () => {
     expect(readRuntime({ ForceTheme: 'light', ZoolConfig: { defaultAppearance: 'dark' } }).settings.defaultAppearance).toBe('light')
     expect(readRuntime({ ForceTheme: 'system' }).settings.defaultAppearance).toBe(DEFAULT_SETTINGS.defaultAppearance)
     expect(readRuntime({ DisableAnimatedMan: 'false' }).settings.hideWordmark).toBe(false)
+    expect(readRuntime({ ZoolConfig: { loginMode: 'oauth' } }).settings.loginMode).toBe('oauth')
+    expect(readRuntime({ ZoolConfig: { loginMode: 'nope' } }).settings.loginMode).toBe('both')
   })
 
   it('keeps config.js keys the custom script did not assign', () => {

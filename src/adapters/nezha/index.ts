@@ -1,4 +1,5 @@
 import { readRuntime, resetRuntimeGlobals } from '@/core/custom-code'
+import { oauthProviderNames, oauthRedirectTarget } from '@/core/oauth'
 import { injectCustomCode } from '@/core/inject-custom-code'
 import { request, resilientSocket, wsUrl } from '@/core/http'
 import { mapOnlineHistory, type OnlineHistoryPayload } from '@/core/online'
@@ -73,7 +74,7 @@ export interface NezhaGroup {
 }
 
 interface NezhaSetting {
-  config?: { site_name?: string; language?: string; custom_code?: string }
+  config?: { site_name?: string; language?: string; custom_code?: string; oauth2_providers?: unknown }
   tsdb_enabled?: boolean
 }
 
@@ -415,13 +416,16 @@ export const nezha: MonitorAdapter = {
       console.error('[zool-theme] custom code failed', error)
     }
     const runtime = readRuntime(window)
+    const providers = oauthProviderNames(cfg.oauth2_providers)
     return {
       name: (cfg.site_name ?? '').trim() || 'Nezha',
       description: runtime.description,
       language: cfg.language?.replace('_', '-'),
       settings: runtime.settings,
       recordHours: 0,
-      oauth: false,
+      oauth: providers.length > 0,
+      oauthProvider: providers[0],
+      oauthProviders: providers,
       passwordLogin: true,
     }
   },
@@ -479,7 +483,16 @@ export const nezha: MonitorAdapter = {
     }
   },
 
-  oauthUrl: () => null,
+  async oauthRedirect(provider) {
+    const name = provider.trim()
+    if (!name) return null
+    try {
+      const res = await request<Common<{ redirect?: string }>>(`/api/v1/oauth2/${encodeURIComponent(name)}?type=1`)
+      return oauthRedirectTarget(res)
+    } catch {
+      return null
+    }
+  },
   nodePath: (id) => `/server/${encodeURIComponent(id)}`,
   // Nezha only serves the SPA for `/` and `/server/:id`.
   matchNodePath: (pathname) => /^\/server\/(\d+)/.exec(pathname)?.[1] ?? null,

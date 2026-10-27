@@ -38,7 +38,14 @@ export interface ThemeSettings {
   /** Hide the footer wordmark. The element stays so custom CSS can target it. */
   hideWordmark: boolean
   footerNote: string
+  /**
+   * Home-page sign-in. `both` shows the password form and any configured OAuth providers.
+   * `password` and `oauth` keep one of those. `dashboard` sends the button to the panel login.
+   */
+  loginMode: LoginMode
 }
+
+export type LoginMode = 'both' | 'password' | 'oauth' | 'dashboard'
 
 export const DEFAULT_SETTINGS: ThemeSettings = {
   defaultAppearance: 'system',
@@ -59,6 +66,7 @@ export const DEFAULT_SETTINGS: ThemeSettings = {
   hideAdminEntry: false,
   hideWordmark: false,
   footerNote: '',
+  loginMode: 'both',
 }
 
 /** An image URL the page can put in the header. Anything else, including `javascript:`, is dropped. */
@@ -122,5 +130,6 @@ export function normalizeSettings(raw: unknown): ThemeSettings {
     hideAdminEntry: bool(r.hideAdminEntry, d.hideAdminEntry),
     hideWordmark: bool(r.hideWordmark, d.hideWordmark),
     footerNote: str(r.footerNote, d.footerNote).trim(),
+    loginMode: oneOf(r.loginMode, ['both', 'password', 'oauth', 'dashboard'], d.loginMode),
   }
 }

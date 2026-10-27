@@ -17,5 +17,6 @@ window.ZoolConfig = {
   // showOffline: true, // list offline nodes
   // hiddenNodes: [], // server ids to hide, e.g. ['12', '13']
   // hideAdminEntry: false, // hide the sign-in button for visitors
+  // loginMode: 'both', // 'both' | 'password' | 'oauth' | 'dashboard' — dashboard opens /dashboard/login
   // footerNote: '', // one line of text in the footer
 }

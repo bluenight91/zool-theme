@@ -154,11 +154,16 @@ export function Header() {
             <ArrowUpRight size={15} strokeWidth={1.7} aria-hidden />
           </a>
         ) : (
-          !settings.hideAdminEntry && (
+          !settings.hideAdminEntry &&
+          (settings.loginMode === 'dashboard' && adapter.target === 'nezha' ? (
+            <a href={`${adapter.adminUrl}/login`} className="btn-outline ml-1">
+              {t('auth.signIn')}
+            </a>
+          ) : (
             <button type="button" className="btn-outline ml-1" onClick={() => openDialog('login')}>
               {t('auth.signIn')}
             </button>
-          )
+          ))
         )}
       </div>
     </header>

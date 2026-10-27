@@ -150,6 +150,7 @@ export const demo: MonitorAdapter = {
     settings: {},
     recordHours: 720,
     oauth: false,
+    oauthProviders: [],
     passwordLogin: true,
   }),
   loadNodes: async () => nodes,
@@ -235,7 +236,7 @@ export const demo: MonitorAdapter = {
   },
 
   login: async () => ({ ok: false, reason: 'invalid', message: 'Sign-in is disabled in the demo.' }),
-  oauthUrl: () => null,
+  oauthRedirect: async () => null,
   nodePath: (id) => `/instance/${id}`,
   matchNodePath: (pathname) => /^\/instance\/([^/]+)/.exec(pathname)?.[1] ?? null,
 }
