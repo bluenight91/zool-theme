@@ -2,8 +2,8 @@ import { useEffect, useSyncExternalStore } from 'react'
 import type { Appearance, Density, Grouping, View } from '@/core/settings'
 
 /**
- * Visitor preferences, stored in localStorage. `appearance` and `language` use the
- * key names shared by Komari themes so a visitor's choice survives a theme switch.
+ * Visitor preferences, stored in localStorage. `appearance` and `language` keep
+ * stable key names so a visitor's choice survives a reload.
  */
 
 const KEYS = { appearance: 'appearance', density: 'zool:density', view: 'zool:view', grouping: 'zool:grouped' } as const

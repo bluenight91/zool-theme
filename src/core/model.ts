@@ -4,7 +4,7 @@
  * its own API onto it.
  */
 
-export type Target = 'komari' | 'nezha' | 'demo'
+export type Target = 'nezha' | 'demo'
 
 export type TrafficLimitType = 'sum' | 'max' | 'min' | 'up' | 'down'
 

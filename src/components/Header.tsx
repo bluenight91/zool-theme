@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowUpRight, Check, Monitor, Moon, RefreshCw, Search, Sun } from 'lucide-react'
 import { adapter, refresh, useStore } from '@/app/store'
@@ -75,6 +75,19 @@ function PrefsMenu() {
   )
 }
 
+function BrandLockup({ title, logo }: { title: string; logo: string }) {
+  const [failed, setFailed] = useState(false)
+  useEffect(() => setFailed(false), [logo])
+  return (
+    <Link href="/" className="mr-auto flex min-w-0 items-center gap-2.5 rounded-md">
+      {logo && !failed && (
+        <img src={logo} alt="" className="h-8 w-auto max-w-40 shrink-0 object-contain" onError={() => setFailed(true)} />
+      )}
+      <span className="min-w-0 truncate text-[19px] font-[450] tracking-[-0.02em]">{title}</span>
+    </Link>
+  )
+}
+
 export function Header() {
   const { t } = useTranslation()
   const site = useStore((s) => s.site)
@@ -98,9 +111,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-paper/80 backdrop-blur-md">
       <div className="wrap flex h-16 items-center gap-2">
-        <Link href="/" className="mr-auto min-w-0 truncate rounded-md text-[19px] font-[450] tracking-[-0.02em]">
-          {title}
-        </Link>
+        <BrandLockup title={title} logo={settings.logo} />
 
         <button
           type="button"

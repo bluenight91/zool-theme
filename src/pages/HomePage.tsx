@@ -335,12 +335,20 @@ export function HomePage() {
           )}
         </p>
 
+        {description && description !== 'A simple server monitor tool.' && (
+          <p className="mt-3 max-w-[60ch] text-[14px] leading-relaxed text-muted">{description}</p>
+        )}
+
         {/* The fleet at a glance. This is the top of the page, so it is the biggest type on
             it — but a band of figures, not one 52px sentence. */}
         {settings.showOverview && (
           <div
             className={`mt-4 grid grid-cols-3 gap-x-4 border-y border-line lg:gap-x-0 lg:divide-x lg:divide-line ${
-              settings.showCost && totals.cost ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+              settings.showCost && totals.cost && settings.showNetTransfer
+                ? 'lg:grid-cols-5'
+                : (settings.showCost && totals.cost) || settings.showNetTransfer
+                  ? 'lg:grid-cols-4'
+                  : 'lg:grid-cols-3'
             }`}
           >
             <Metric
@@ -369,27 +377,37 @@ export function HomePage() {
                 />
               }
             />
-            <Metric
-              label={t('overview.traffic')}
-              value={
-                <>
-                  {splitBytes(totals.traffic).value}
-                  <span className="ml-1 text-[0.55em] text-muted">{splitBytes(totals.traffic).unit}</span>
-                </>
-              }
-              sub={
-                <Pair
-                  up={`${splitBytes(totals.trafficUp).value} ${splitBytes(totals.trafficUp).unit}`}
-                  down={`${splitBytes(totals.trafficDown).value} ${splitBytes(totals.trafficDown).unit}`}
-                />
-              }
-            />
+            {settings.showNetTransfer && (
+              <Metric
+                label={t('overview.traffic')}
+                value={
+                  <>
+                    {splitBytes(totals.traffic).value}
+                    <span className="ml-1 text-[0.55em] text-muted">{splitBytes(totals.traffic).unit}</span>
+                  </>
+                }
+                sub={
+                  <Pair
+                    up={`${splitBytes(totals.trafficUp).value} ${splitBytes(totals.trafficUp).unit}`}
+                    down={`${splitBytes(totals.trafficDown).value} ${splitBytes(totals.trafficDown).unit}`}
+                  />
+                }
+              />
+            )}
             {/* Not an average. A mean CPU across a one-core VPS and a sixteen-core box is
                 arithmetic without meaning; this counts the machines with a reading past its own
                 warning line, which is the question a summary actually owes the reader. */}
             <Metric
               label={t('overview.attention')}
-              className={settings.showCost && totals.cost ? 'col-span-2 lg:col-span-1' : 'col-span-3 lg:col-span-1'}
+              className={
+                settings.showCost && totals.cost && settings.showNetTransfer
+                  ? 'col-span-2 lg:col-span-1'
+                  : !settings.showCost || !totals.cost
+                    ? settings.showNetTransfer
+                      ? 'col-span-3 lg:col-span-1'
+                      : 'lg:col-span-1'
+                    : 'lg:col-span-1'
+              }
               subOnPhone
               tone={totals.worst?.level === 'danger' ? 'text-danger' : totals.worst ? 'text-warn' : ''}
               value={totals.attention}
@@ -401,6 +419,7 @@ export function HomePage() {
             />
             {settings.showCost && totals.cost && (
               <Metric
+                className={settings.showNetTransfer ? '' : 'col-span-3 lg:col-span-1'}
                 label={t('overview.cost')}
                 value={
                   <>
@@ -412,9 +431,6 @@ export function HomePage() {
               />
             )}
           </div>
-        )}
-        {description && description !== 'A simple server monitor tool.' && (
-          <p className="mt-3 max-w-[60ch] text-[14px] leading-relaxed text-muted">{description}</p>
         )}
       </section>
 

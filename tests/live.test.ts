@@ -61,7 +61,7 @@ describe('noteFrame / blindNow', () => {
   const GAP = 8_000
 
   it('records a window when frames stop arriving, not when a socket says so', () => {
-    // A backgrounded Komari tab keeps its socket open but stops asking, so only the silence
+    // A backgrounded tab keeps its socket open but stops asking, so only the silence
     // between frames can tell us we were not watching.
     let windows: BlindWindow[] = []
     windows = noteFrame(windows, null, 1_000, GAP) // first frame ever

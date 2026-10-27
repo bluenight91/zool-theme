@@ -1,9 +1,8 @@
 /*
  * Self-destructing service worker.
  *
- * Komari's built-in frontend is a PWA: it registers /sw.js, which precaches index.html
- * and answers navigations from that cache. After switching themes the precached HTML
- * still points at the previous theme's hashed assets, which no longer exist — the page
+ * A previous theme may have registered /sw.js and precached index.html. After switching
+ * themes that HTML still points at hashed assets which no longer exist, and the page
  * goes blank. Browsers check /sw.js on navigation, so shipping this file lets the stale
  * worker be replaced by one that clears every cache, unregisters itself and reloads.
  *

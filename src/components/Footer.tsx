@@ -13,6 +13,7 @@ function GitHubMark({ className = '' }: { className?: string }) {
 export function Footer() {
   const { t } = useTranslation()
   const note = useStore((s) => s.settings.footerNote)
+  const hideWordmark = useStore((s) => s.settings.hideWordmark)
 
   return (
     <footer className="mt-24 border-t border-line">
@@ -48,7 +49,11 @@ export function Footer() {
         </p>
       </div>
       {/* The closing wordmark from the ZOOL site, cropped so it rises from the page edge. */}
-      <div className="wrap h-[clamp(40px,9vw,112px)] overflow-hidden" aria-hidden="true">
+      <div
+        data-zool="wordmark"
+        className={`wrap h-[clamp(40px,9vw,112px)] overflow-hidden ${hideWordmark ? 'hidden' : ''}`}
+        aria-hidden="true"
+      >
         <Wordmark className="h-auto w-full translate-y-[12%] text-wash" />
       </div>
     </footer>

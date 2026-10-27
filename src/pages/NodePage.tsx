@@ -106,9 +106,8 @@ function NodeSwitcher({ current }: { current: NodeInfo }) {
 /* ---------- today's traffic and 24 h peak ---------- */
 
 /**
- * A week of hourly records, only where the backend keeps them. Komari holds 744 hours; at
- * the 30-day range it averages to one point per day, which hides real outages, so the grid
- * asks for 7 days and nothing longer.
+ * A week of hourly records, only where the backend keeps them. A 30-day range averages to
+ * one point per day, which hides real outages, so the grid asks for 7 days and nothing longer.
  */
 function useWeekHistory(id: string) {
   const recordHours = useStore((s) => s.site?.recordHours ?? 0)
@@ -427,6 +426,7 @@ export function NodePage({ id }: { id: string }) {
   const node = nodes.find((n) => n.id === nodeId)
   const snap = useStore((s) => s.snapshots[nodeId])
   const siteName = useStore((s) => s.settings.siteTitle || s.site?.name || '')
+  const showNetTransfer = useStore((s) => s.settings.showNetTransfer)
   const uptime = useUptime()
   const relative = useRelativeTime()
   const billing = useBilling()
@@ -576,7 +576,10 @@ export function NodePage({ id }: { id: string }) {
         >
           <Percent value={snap ? ratio(snap.diskUsed, diskTotal) : 0} />
         </Stat>
-        <Stat label={t('metric.network')} sub={`↑ ${formatBytes(snap?.totalUp ?? 0)} · ↓ ${formatBytes(snap?.totalDown ?? 0)}`}>
+        <Stat
+          label={t('metric.network')}
+          sub={showNetTransfer ? `↑ ${formatBytes(snap?.totalUp ?? 0)} · ↓ ${formatBytes(snap?.totalDown ?? 0)}` : undefined}
+        >
           <span className="flex items-center gap-3">
             <MirrorSpark up={liveNet.up} down={liveNet.down} width={72} height={30} label={t('metric.network')} />
             {/* stacked: the six-up band gives this cell about 200px, too narrow for both rates in a row */}
@@ -645,8 +648,8 @@ export function NodePage({ id }: { id: string }) {
                 ''
               ),
             ],
-            [`${t('metric.upload')} · ${t('node.totals')}`, <Bytes key="u" value={snap?.totalUp ?? 0} />],
-            [`${t('metric.download')} · ${t('node.totals')}`, <Bytes key="d" value={snap?.totalDown ?? 0} />],
+            [`${t('metric.upload')} · ${t('node.totals')}`, showNetTransfer ? <Bytes key="u" value={snap?.totalUp ?? 0} /> : ''],
+            [`${t('metric.download')} · ${t('node.totals')}`, showNetTransfer ? <Bytes key="d" value={snap?.totalDown ?? 0} /> : ''],
             [
               t('metric.quota'),
               node.trafficLimit > 0 ? (

@@ -2,7 +2,7 @@
 
 This directory contains installation guidance for AI coding agents such as Claude
 Code and Codex. `zool-install` covers installing, upgrading and rolling back ZOOL
-on Komari and Nezha, including backups and verification.
+on Nezha from 设置 → 前端管理, including release verification.
 
 For Claude Code, copy `skills/zool-install` into `~/.claude/skills/` for personal
 use, or into your project's `.claude/skills/` directory. Then invoke `/zool-install`

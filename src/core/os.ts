@@ -67,7 +67,7 @@ const RULES: readonly (readonly [RegExp, OsKey])[] = [
   [/microsoft|win(dows)? ?server/i, 'windows'],
 ]
 
-/** Resolve Komari OS descriptions and Nezha platform IDs without UI dependencies. */
+/** Resolve OS descriptions and platform IDs without UI dependencies. */
 export function osKey(os: string): OsKey {
   const text = os ?? ''
   for (const [pattern, key] of RULES) if (pattern.test(text)) return key

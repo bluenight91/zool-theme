@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { daysUntil, formatBytes, formatNumber, monthlyCost, splitSpeed, trafficUsed } from '../src/core/format'
 import { flagToRegion, stripFlag } from '../src/core/region'
@@ -98,17 +97,11 @@ describe('settings', () => {
     expect(normalizeSettings({ defaultView: 'cards' }).defaultView).toBe('cards')
   })
 
-  it('declares every setting in komari-theme.json with a matching default', () => {
-    const manifest = JSON.parse(readFileSync(new URL('../targets/komari/komari-theme.json', import.meta.url), 'utf8'))
-    const declared = (manifest.configuration.data as { key?: string; type: string; default?: unknown }[]).filter(
-      (d) => d.type !== 'title',
-    )
-    const keys = declared.map((d) => d.key)
-    expect(new Set(keys)).toEqual(new Set(Object.keys(DEFAULT_SETTINGS)))
-    for (const d of declared) {
-      const expected = DEFAULT_SETTINGS[d.key as keyof typeof DEFAULT_SETTINGS]
-      if (d.type === 'nodes') expect(expected).toEqual([])
-      else expect(d.default).toEqual(expected)
-    }
+  it('keeps cumulative traffic visible unless it is turned off', () => {
+    expect(normalizeSettings(undefined).showNetTransfer).toBe(true)
+    expect(normalizeSettings({ showNetTransfer: 'false' }).showNetTransfer).toBe(false)
+    expect(normalizeSettings({ hideWordmark: 'true' }).hideWordmark).toBe(true)
+    expect(normalizeSettings({ logo: 'javascript:alert(1)' }).logo).toBe('')
+    expect(normalizeSettings({ logo: 'https://example.com/logo.png' }).logo).toBe('https://example.com/logo.png')
   })
 })

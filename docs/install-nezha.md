@@ -1,53 +1,50 @@
 # Installing on Nezha
 
-ZOOL works with the Nezha dashboard v1 (tested on v2.0.13).
+ZOOL is a user frontend for the Nezha dashboard. Install it from **设置 → 前端管理** on a dashboard that can install frontend releases at runtime (the feature added in [nezhahq/nezha@891d639](https://github.com/nezhahq/nezha/commit/891d63920d421111c4e27ed6dad32d7497d1a56f)).
 
-## How Nezha finds a theme
+Nezha only serves this frontend for `/` and `/server/:id`, which is what the theme uses. Assets are rooted at `/`.
 
-The dashboard serves the visitor-facing frontend from the template named by `user_template` in
-`data/config.yaml` (for example `user-dist` or `nazhua-dist`). For every request it first looks for a
-directory with that name in its working directory (`/dashboard` in the official image) and only then falls
-back to the copy built into the binary. Mounting ZOOL over one of those names therefore replaces the
-frontend without rebuilding Nezha, and the admin panel keeps accepting the template name.
+## From the admin panel
 
-Nezha only serves the frontend for `/` and `/server/:id`, which is exactly what the theme uses.
+1. Open **设置 → 前端管理** and choose **用户前端**.
+2. Enter the repository `https://github.com/foru17/zool-theme`.
+3. Install a release. The release must be public, not a draft, and must contain an asset named exactly `dist.zip`. Inside that zip every file lives under `dist/`, including a nonempty `dist/index.html`.
+4. Click **启用**. The next request uses ZOOL. No panel restart.
 
-## Docker Compose
+`curl -s https://your-nezha/ | grep -o 'generator" content="zool v[0-9.]*'` prints the installed version.
 
-1. Download `zool-nezha-v1.0.0.zip` and unzip it next to your `docker-compose.yaml`. You get a `zool-dist/` folder; `zool-dist` remains the directory name for ZOOL.
-2. Check which template is active:
+To go back, enable the previous frontend in the same list (the built-in one is `user-dist`).
 
-   ```bash
-   grep user_template data/config.yaml   # e.g. user_template: user-dist
-   ```
+## Custom code
 
-3. Mount the folder over that template and restart:
+**设置 → 自定义代码**, on the user frontend, is injected before the page reads its settings. A `<style>` block applies as CSS. A `<script>` block runs, and these globals are read afterwards. `"true"` and `"false"` count as booleans.
 
-   ```yaml
-   services:
-     dashboard:
-       image: ghcr.io/nezhahq/nezha:v2.0.13
-       volumes:
-         - ./data:/dashboard/data
-         - ./zool-dist:/dashboard/user-dist # use the name from step 2
-   ```
+| Global | Effect |
+| --- | --- |
+| `window.ZoolConfig.siteTitle` | Replaces the site name in the header and the browser title |
+| `window.CustomLogo` | Image before the title. Only `http:` and `https:` URLs are used |
+| `window.CustomDesc` | One line under the home-page title |
+| `window.ForceTheme` | `"light"` or `"dark"`, the default appearance until a visitor picks one |
+| `window.DisableAnimatedMan` | Hides the footer wordmark when true |
+| `window.ShowNetTransfer` | Cumulative transfer stays visible unless this is false |
 
-   ```bash
-   docker compose up -d
-   ```
+The same `<style>` block can target the wordmark with `[data-zool="wordmark"]`. Class names from other themes, such as `.pb-4`, do not match anything here.
 
-4. Open the dashboard. `curl -s https://your-nezha/ | grep -o 'generator" content="zool v[0-9.]*'` should print the installed version.
+```html
+<script>
+  window.ZoolConfig = { siteTitle: "我的面板" };
+  window.CustomLogo = "https://example.com/logo.png";
+  window.CustomDesc = "醉后不知天在水，满船清梦压星河。";
+  window.DisableAnimatedMan = "true";
+</script>
+<style>
+  [data-zool="wordmark"] { display: none; }
+</style>
+```
 
-## Configuration
+`dist/config.js` still ships the same `window.ZoolConfig` keys, commented out. Custom code runs after that file. Assigning `window.ZoolConfig = { siteTitle: "…" }` overrides only the keys in that object; anything left out stays as `config.js` set it. On a frontend installed by the panel, prefer the custom-code box: the installed files are replaced as a unit, so edits inside `dist/` do not survive the next install.
 
-Edit `zool-dist/config.js`. It sets `window.ZoolConfig`; every key is optional and documented inline.
-Reload the page to see changes. The keys are the same as the Komari settings listed in the
-[README](../README.md#settings); for `hiddenNodes`, use server ids as strings, e.g. `['12', '13']`.
-
-| Setting | Default | Meaning |
-| --- | --- | --- |
-| `showGroups` | `true` | Offer the group filter on the home page. `false` hides the control and never sections by group, regardless of `defaultGrouped`. |
-| `defaultGrouped` | `false` | Default state of the visitor's "Show by group" button (the visitor's own choice is remembered). With one group picked the page is always flat; otherwise the button decides between one flat list and sections per group. |
+The other keys (`defaultView`, `showOverview`, `footerNote`, and the rest) are listed in the [README](../README.md#settings).
 
 ## Billing data
 
@@ -86,19 +83,8 @@ while the page is open. The latency tab shows the last 24 hours of the dashboard
 The sign-in dialog posts to `/api/v1/login` and then opens `/dashboard`. Nezha blocks an IP for a while
 after repeated failures; the dialog says so.
 
-## Upgrading and rollback
+## If the panel cannot reach GitHub
 
-- Upgrade: **copy the new files over the old ones — do not delete the previous `assets/`.** Nezha serves
-  `index.html` without `Cache-Control` (only `Last-Modified`), so a browser may still hold the previous
-  HTML for a while; if that HTML's hashed assets are gone, Nezha answers `404` and the page stays blank.
-  Leaving the old hashed files in place costs a few hundred KB and lets those visitors finish their session.
-  Sweep them the next time you upgrade.
-  ```bash
-  unzip -o zool-nezha-v1.0.0.zip -d /tmp/zool && cp -r /tmp/zool/zool-dist/. ./zool-dist/
-  ```
-  No restart is needed unless you change the mount.
-- Rollback: remove the volume line and `docker compose up -d`. The built-in template comes back.
+Download `dist.zip` from the [releases page](https://github.com/foru17/zool-theme/releases/latest) and unzip it so `index.html` lands in the template directory the dashboard is serving (often `user-dist` in the dashboard's working directory). That directory is the *contents* of `dist/`, not a folder named `dist` beside the binary. Restart only if the process does not already read that directory from disk.
 
-## Without Docker
-
-Put the `zool-dist` folder in the dashboard's working directory, renamed to the active template name, and restart the service.
+When copying an upgrade over an existing directory, leave the previous `assets/` files in place. `index.html` is served without `Cache-Control`, so a browser may still hold the previous HTML; if its hashed files are gone, the page stays blank.

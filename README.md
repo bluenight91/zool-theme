@@ -6,8 +6,7 @@
 </p>
 
 <p align="center">
-  A calm status page for <a href="https://github.com/komari-monitor/komari">Komari</a> and
-  <a href="https://github.com/nezhahq/nezha">Nezha</a>.<br />
+  A calm status page for <a href="https://github.com/nezhahq/nezha">Nezha</a>.<br />
   <sub>Thoughtful software. For everyday life.</sub>
 </p>
 
@@ -19,7 +18,6 @@
   <a href="https://github.com/foru17/zool-theme/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/foru17/zool-theme?style=flat-square&color=53695A" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-53695A?style=flat-square" /></a>
   <br />
-  <img alt="Komari 1.4+" src="https://img.shields.io/badge/Komari-1.4%2B-B8C8BE?style=flat-square" />
   <img alt="Nezha v1" src="https://img.shields.io/badge/Nezha-v1-B8C8BE?style=flat-square" />
   <img alt="Zero external requests" src="https://img.shields.io/badge/external%20requests-0-B8C8BE?style=flat-square" />
   <img alt="Languages" src="https://img.shields.io/badge/i18n-en%20·%20zh--CN%20·%20zh--TW%20·%20ja-B8C8BE?style=flat-square" />
@@ -30,7 +28,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/home-light.png" alt="ZOOL on a Komari fleet, light mode" width="880" />
+  <img src="docs/screenshots/home-light.png" alt="ZOOL in light mode" width="880" />
 </p>
 
 ## Install with an AI agent
@@ -38,10 +36,9 @@
 Give this to Claude Code, Codex or any coding agent that can reach your server:
 
 ```text
-Install the ZOOL theme on my <Komari|Nezha> panel at https://<host>.
+Install the ZOOL theme on my Nezha panel at https://<host>.
 Follow https://raw.githubusercontent.com/foru17/zool-theme/main/skills/zool-install/SKILL.md:
-detect the panel, download the latest release and verify SHA256SUMS, back up first,
-install, verify, and tell me the rollback command.
+confirm the panel, verify the latest dist.zip, install it from 设置 → 前端管理, verify, and tell me how to switch back.
 ```
 
 The skill asks before anything destructive and never deletes the theme directory. To keep it
@@ -49,24 +46,7 @@ around, copy [`skills/zool-install`](skills/zool-install) into `~/.claude/skills
 
 ## Install by hand
 
-Download `zool-komari-v1.0.0.zip` or `zool-nezha-v1.0.0.zip` from
-[Releases](https://github.com/foru17/zool-theme/releases/latest).
-
-**Komari** — Admin panel → Settings → Theme → upload the zip → select **ZOOL**.
-Command line and upgrades: [docs/install-komari.md](docs/install-komari.md).
-
-**Nezha** — unzip `zool-dist/` next to your compose file and mount it over the template the
-dashboard uses:
-
-```yaml
-services:
-  dashboard:
-    volumes:
-      - ./data:/dashboard/data
-      - ./zool-dist:/dashboard/user-dist:ro   # the template selected in Settings → Theme
-```
-
-Then `docker compose up -d`. Options and rollback: [docs/install-nezha.md](docs/install-nezha.md).
+In **设置 → 前端管理 → 用户前端**, enter `https://github.com/foru17/zool-theme`, install a release, then enable it. The release asset is `dist.zip`. Options, custom code and rollback: [docs/install-nezha.md](docs/install-nezha.md).
 
 ## What you get
 
@@ -92,7 +72,7 @@ Then `docker compose up -d`. Options and rollback: [docs/install-nezha.md](docs/
 - **Private by default.** Fonts, flags and icons ship with the theme. It talks only to your
   own panel.
 - **Small and maintained.** Hand-drawn SVG instead of a chart library, about 125 KB of gzipped
-  JavaScript, tested against real Komari and Nezha fleets.
+  JavaScript, tested against real Nezha fleets.
 
 ## Settings
 
@@ -114,7 +94,7 @@ Then `docker compose up -d`. Options and rollback: [docs/install-nezha.md](docs/
 | `hideAdminEntry` | `false` | Hide the sign-in button |
 | `footerNote` | *(empty)* | One line of text in the footer |
 
-On Komari these live in the admin panel. On Nezha, edit `zool-dist/config.js`; no rebuild needed.
+Set these from **设置 → 自定义代码** on `window.ZoolConfig`, or in `dist/config.js` before the page loads. Custom code runs afterwards and wins. See [docs/install-nezha.md](docs/install-nezha.md#custom-code) for the logo, description and the other `window` globals.
 
 ## Develop
 
@@ -123,8 +103,7 @@ Node.js 22+ and pnpm.
 ```bash
 pnpm install
 pnpm dev:demo          # synthetic fleet, every node state included
-pnpm dev               # Komari: proxies /api to ZOOL_UPSTREAM
-pnpm dev:nezha         # Nezha: proxies /api to ZOOL_UPSTREAM
+pnpm dev               # Nezha: proxies /api to ZOOL_UPSTREAM, or demo data when it is unset
 pnpm check             # types, tests, i18n
 pnpm build && pnpm check:size && pnpm package
 ```
@@ -134,8 +113,7 @@ rules: [docs/instruments.md](docs/instruments.md).
 
 ## Credits
 
-Built on the public APIs of [Komari](https://github.com/komari-monitor/komari) and
-[Nezha](https://github.com/nezhahq/nezha). Typeface [Inter](https://rsms.me/inter/) (SIL OFL),
+Built on the public API of [Nezha](https://github.com/nezhahq/nezha). Typeface [Inter](https://rsms.me/inter/) (SIL OFL),
 UI icons [Lucide](https://lucide.dev) (ISC), flags [flag-icons](https://github.com/lipis/flag-icons)
 (MIT), system icons [Simple Icons](https://simpleicons.org) (CC0; marks belong to their owners,
 tile colours from Simple Icons metadata, the Windows shape is drawn for this project).

@@ -6,8 +6,7 @@
 </p>
 
 <p align="center">
-  为 <a href="https://github.com/komari-monitor/komari">Komari</a> 与
-  <a href="https://github.com/nezhahq/nezha">哪吒监控</a> 打造的安静的状态页。<br />
+  为 <a href="https://github.com/nezhahq/nezha">哪吒监控</a> 打造的安静的状态页。<br />
   <sub>认真打磨软件，让日常更从容。</sub>
 </p>
 
@@ -19,7 +18,6 @@
   <a href="https://github.com/foru17/zool-theme/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/foru17/zool-theme?style=flat-square&color=53695A" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-53695A?style=flat-square" /></a>
   <br />
-  <img alt="Komari 1.4+" src="https://img.shields.io/badge/Komari-1.4%2B-B8C8BE?style=flat-square" />
   <img alt="Nezha v1" src="https://img.shields.io/badge/Nezha-v1-B8C8BE?style=flat-square" />
   <img alt="Zero external requests" src="https://img.shields.io/badge/external%20requests-0-B8C8BE?style=flat-square" />
   <img alt="Languages" src="https://img.shields.io/badge/i18n-en%20·%20zh--CN%20·%20zh--TW%20·%20ja-B8C8BE?style=flat-square" />
@@ -38,9 +36,9 @@
 把下面这段交给 Claude Code、Codex 或任何能访问你服务器的编码代理：
 
 ```text
-在 https://<host> 的 <Komari|哪吒> 面板上安装 ZOOL 主题。
+在 https://<host> 的哪吒面板上安装 ZOOL 主题。
 按照 https://raw.githubusercontent.com/foru17/zool-theme/main/skills/zool-install/SKILL.md 执行：
-识别面板、下载最新 Release 并校验 SHA256SUMS、先备份、安装、验证，最后告诉我回滚命令。
+确认面板、校验最新的 dist.zip、在「设置 → 前端管理」安装、验证，并告诉我如何切回原来的前端。
 ```
 
 这个 skill 在任何破坏性操作前都会先询问，也不会删除主题目录。想长期使用，可把
@@ -48,23 +46,7 @@
 
 ## 手动安装
 
-从 [Releases](https://github.com/foru17/zool-theme/releases/latest) 下载 `zool-komari-v1.0.0.zip`
-或 `zool-nezha-v1.0.0.zip`。
-
-**Komari** —— 管理后台 → 设置 → 主题 → 上传 zip → 选择 **ZOOL**。
-命令行安装与升级见 [docs/install-komari.md](docs/install-komari.md)。
-
-**哪吒** —— 把 `zool-dist/` 解压到 compose 文件旁，挂载到面板正在使用的模板目录上：
-
-```yaml
-services:
-  dashboard:
-    volumes:
-      - ./data:/dashboard/data
-      - ./zool-dist:/dashboard/user-dist:ro   # 设置 → 主题 中选中的模板名
-```
-
-然后执行 `docker compose up -d`。配置项与回滚见 [docs/install-nezha.md](docs/install-nezha.md)。
+打开 **设置 → 前端管理 → 用户前端**，填入 `https://github.com/foru17/zool-theme`，安装一个版本后点启用。发布附件的名字是 `dist.zip`。配置、自定义代码和切回原来的前端见 [docs/install-nezha.md](docs/install-nezha.md)。
 
 ## 你会得到
 
@@ -84,7 +66,7 @@ services:
 - **纸与墨。** 暖白纸面、墨色文字、细线分隔，只在数字需要时才用颜色。
 - **不喧宾夺主。** 不用渐变、发光，也不为动而动。
 - **默认私密。** 字体、国旗与图标随主题分发，只和你自己的面板通信。
-- **小而持续维护。** 用手绘 SVG 代替图表库，gzip 后约 125 KB 的 JavaScript，在真实的 Komari 与哪吒机群上测试。
+- **小而持续维护。** 用手绘 SVG 代替图表库，gzip 后约 125 KB 的 JavaScript，在真实的哪吒机群上测试。
 
 ## 配置
 
@@ -106,7 +88,7 @@ services:
 | `hideAdminEntry` | `false` | 隐藏登录按钮 |
 | `footerNote` | *（空）* | 页脚的一行文字 |
 
-Komari 在管理后台设置；哪吒编辑 `zool-dist/config.js`，无需重新构建。
+在 **设置 → 自定义代码** 里写到 `window.ZoolConfig`，或在页面加载前改 `dist/config.js`。自定义代码后执行，并覆盖同名字段。Logo、描述和其余 `window` 变量见 [docs/install-nezha.md](docs/install-nezha.md#custom-code)。
 
 ## 开发
 
@@ -115,8 +97,7 @@ Komari 在管理后台设置；哪吒编辑 `zool-dist/config.js`，无需重新
 ```bash
 pnpm install
 pnpm dev:demo          # 合成数据，包含所有节点状态
-pnpm dev               # Komari：代理 /api 到 ZOOL_UPSTREAM
-pnpm dev:nezha         # 哪吒：代理 /api 到 ZOOL_UPSTREAM
+pnpm dev               # 哪吒：把 /api 代理到 ZOOL_UPSTREAM；未设置时使用合成数据
 pnpm check             # 类型检查、测试、i18n
 pnpm build && pnpm check:size && pnpm package
 ```
@@ -126,7 +107,7 @@ pnpm build && pnpm check:size && pnpm package
 
 ## 致谢
 
-基于 [Komari](https://github.com/komari-monitor/komari) 与 [哪吒监控](https://github.com/nezhahq/nezha)
+基于 [哪吒监控](https://github.com/nezhahq/nezha)
 的公开 API。字体 [Inter](https://rsms.me/inter/)（SIL OFL），界面图标 [Lucide](https://lucide.dev)（ISC），
 国旗 [flag-icons](https://github.com/lipis/flag-icons)（MIT），系统图标 [Simple Icons](https://simpleicons.org)
 （CC0；图标为各自权利人的商标，底板颜色取自 Simple Icons 登记的品牌色，Windows 图形为本项目自绘）。

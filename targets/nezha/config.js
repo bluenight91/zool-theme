@@ -1,6 +1,7 @@
 // zool-theme · runtime configuration for Nezha.
-// Edit this file next to index.html and reload the page; no rebuild needed.
-// Every key is optional. Komari users configure the same options in the admin panel instead.
+// Every key is optional. A dashboard installed from 设置 → 前端管理 cannot edit this
+// file in place; put the same keys on window.ZoolConfig from 用户前端自定义代码 instead.
+// That script runs after this file. Keys it sets win; keys it leaves out stay as they are here.
 window.ZoolConfig = {
   // defaultAppearance: 'system', // 'system' | 'light' | 'dark'
   // defaultView: 'ledger', // 'ledger' | 'cards' — home page shape; visitors can switch

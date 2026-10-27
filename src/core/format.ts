@@ -58,7 +58,7 @@ export function duration(seconds: number): Duration {
   }
 }
 
-/** Traffic counted against the quota, following Komari's `traffic_limit_type`. */
+/** Traffic counted against the quota, following the node's limit type. */
 export function trafficUsed(type: TrafficLimitType, up: number, down: number) {
   switch (type) {
     case 'sum':

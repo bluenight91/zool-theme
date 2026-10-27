@@ -8,7 +8,7 @@ import { ratio, trafficUsed } from './format'
  * - `online`: reporting normally.
  * - `stale`: marked online, but its last report is older than STALE_MS.
  * - `recent`: offline, last seen within RECENT_MS — often a restart or a network blip.
- * - `offline`: offline for longer, or offline with no known last report (Komari does not send
+ * - `offline`: offline for longer, or offline with no known last report (a backend may omit
  *   one for nodes that were already down when the page loaded).
  * - `never`: the backend says it has never reported.
  */
