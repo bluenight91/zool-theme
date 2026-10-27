@@ -39,7 +39,7 @@ describe('custom code', () => {
   })
 
   it('keeps config.js keys the custom script did not assign', () => {
-    const target = { ZoolConfig: { footerNote: 'kept', siteTitle: 'from file' } }
+    const target: { ZoolConfig: Record<string, unknown> } = { ZoolConfig: { footerNote: 'kept', siteTitle: 'from file' } }
     resetRuntimeGlobals(target)
     target.ZoolConfig = { siteTitle: '我的面板' }
     const runtime = readRuntime(target)
