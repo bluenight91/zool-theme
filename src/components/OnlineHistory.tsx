@@ -131,7 +131,7 @@ export function OnlineHistory({ serverId }: { serverId: string }) {
   const groups = data ? chipsByDay(mode === 'online' ? data.periods : offlinePeriods(data.periods, data.windowStart, data.windowEnd), data.timeZone) : []
 
   return (
-    <section className="mt-14" data-online-history="" aria-label={t('node.onlineHistory')} aria-busy={data === undefined}>
+    <section data-online-history="" aria-label={t('node.onlineHistory')} aria-busy={data === undefined}>
       <div className="flex flex-wrap items-center gap-3">
         <h2 className="mr-auto flex items-center gap-2 text-[20px] font-light tracking-[-0.02em]">
           {data && <StatusDot online={data.currentlyOnline} />}

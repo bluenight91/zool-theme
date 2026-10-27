@@ -151,7 +151,7 @@ function useDaySummary(id: string, snap: Snapshot | undefined) {
 
 /* ---------- charts ---------- */
 
-type Tab = 'load' | 'ping'
+type Tab = 'detail' | 'network' | 'online'
 
 function useTimeFormats(hours: number) {
   const { i18n } = useTranslation()
@@ -308,7 +308,12 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   const ranges = adapter.historyRanges.filter((h) => h === 0 || h <= Math.max(recordHours, 1))
   const pingRanges = adapter.pingRanges ?? ranges.filter((h) => h > 0)
   const rangeLocked = (h: number) => adapter.guestRangeHours != null && !loggedIn && h > adapter.guestRangeHours
-  const [tab, setTab] = useState<Tab>('load')
+  const [tab, setTab] = useState<Tab>('detail')
+  const viewTabs = (['detail', 'network', 'online'] as const).filter((item) => {
+    if (item === 'network') return adapter.capabilities.ping
+    if (item === 'online') return Boolean(adapter.loadOnlineHistory)
+    return true
+  })
   const [pingRange, setPingRange] = useState(pingRanges.includes(24) ? 24 : (pingRanges[0] ?? 24))
   useEffect(() => {
     if (rangeLocked(pingRange)) setPingRange(adapter.guestRangeHours ?? 24)
@@ -322,7 +327,7 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   const pingKey = `${node.id}:${pingRange}:${nonce}`
 
   useEffect(() => {
-    if (tab !== 'load' || range === 0) return
+    if (tab !== 'detail' || range === 0) return
     let cancelled = false
     setError(false)
     adapter
@@ -335,7 +340,7 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   }, [tab, range, node.id, historyKey])
 
   useEffect(() => {
-    if (tab !== 'ping' || !adapter.capabilities.ping) return
+    if (tab !== 'network' || !adapter.capabilities.ping) return
     let cancelled = false
     setError(false)
     adapter
@@ -352,30 +357,39 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   const points = range === 0 ? live : history?.key === historyKey ? history.points : null
   const pingData = ping?.key === pingKey ? ping.data : null
   const rangeLabel = (h: number) => (h === 0 ? t('node.rangeLive') : h < 24 ? t('node.rangeHours', { count: h }) : t('node.rangeDays', { count: h / 24 }))
-  const activeRanges = tab === 'load' ? ranges : pingRanges
-  const activeRange = tab === 'load' ? range : pingRange
+  const activeRanges = tab === 'network' ? pingRanges : ranges
+  const activeRange = tab === 'network' ? pingRange : range
+  const tabLabel = { detail: t('node.tabDetail'), network: t('node.tabNetwork'), online: t('node.tabOnline') }
 
   return (
     <section className="mt-16">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="mr-auto text-[24px] font-light tracking-[-0.02em]">{t('node.charts')}</h2>
-        {adapter.capabilities.ping && (
-          <div className="flex rounded-full border border-line p-0.5" role="tablist">
-            {(['load', 'ping'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                role="tab"
-                aria-selected={tab === k}
-                onClick={() => setTab(k)}
-                className={`h-8 rounded-full px-4 text-[13px] transition-colors ${tab === k ? 'bg-ink text-paper' : 'text-muted hover:text-ink'}`}
-              >
-                {t(k === 'load' ? 'node.tabLoad' : 'node.tabPing')}
-              </button>
-            ))}
+        {viewTabs.length > 1 ? (
+          <div className="flex w-full items-center gap-4">
+            <span className="h-px flex-1 bg-line" aria-hidden />
+            <div className="flex rounded-full border border-line p-0.5" role="tablist" aria-label={t('node.charts')}>
+              {viewTabs.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === item}
+                  onClick={() => {
+                    setError(false)
+                    setTab(item)
+                  }}
+                  className={`h-8 rounded-full px-4 text-[13px] transition-colors ${tab === item ? 'bg-ink text-paper' : 'text-muted hover:text-ink'}`}
+                >
+                  {tabLabel[item]}
+                </button>
+              ))}
+            </div>
+            <span className="h-px flex-1 bg-line" aria-hidden />
           </div>
+        ) : (
+          <h2 className="mr-auto text-[24px] font-light tracking-[-0.02em]">{t('node.charts')}</h2>
         )}
-        {activeRanges.length > 1 && (
+        {tab !== 'online' && activeRanges.length > 1 && (
           <div className="scroll-x flex gap-0.5" role="group">
             {activeRanges.map((h) => {
               const locked = rangeLocked(h)
@@ -387,7 +401,7 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
                   aria-pressed={activeRange === h}
                   disabled={locked}
                   title={locked ? t('node.memberRange') : undefined}
-                  onClick={() => (tab === 'load' ? setRange(h) : setPingRange(h))}
+                  onClick={() => (tab === 'network' ? setPingRange(h) : setRange(h))}
                 >
                   {rangeLabel(h)}
                 </button>
@@ -395,19 +409,21 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
             })}
           </div>
         )}
-        {((tab === 'load' && range > 0) || tab === 'ping') && (
+        {tab !== 'online' && ((tab === 'detail' && range > 0) || tab === 'network') && (
           <button type="button" className="icon-btn" aria-label={t('node.refresh')} title={t('node.refresh')} onClick={() => setNonce((n) => n + 1)}>
             <RefreshCw size={16} strokeWidth={1.6} />
           </button>
         )}
       </div>
 
-      {tab === 'load' && range === 0 && !adapter.capabilities.history && <p className="mt-3 text-[13px] text-muted">{t('node.liveOnly')}</p>}
+      {tab === 'detail' && range === 0 && !adapter.capabilities.history && <p className="mt-3 text-[13px] text-muted">{t('node.liveOnly')}</p>}
 
       <div className="mt-5">
-        {error ? (
+        {tab === 'online' ? (
+          <OnlineHistory serverId={node.id} />
+        ) : error ? (
           <p className="rounded-[20px] border border-dashed border-line py-16 text-center text-[14px] text-muted">{t('app.loadError')}</p>
-        ) : tab === 'load' ? (
+        ) : tab === 'detail' ? (
           points === null ? (
             <ChartSkeleton />
           ) : points.length < 2 && range > 0 ? (
@@ -716,8 +732,6 @@ export function NodePage({ id }: { id: string }) {
           <HourGrid points={week} />
         </div>
       )}
-
-      <OnlineHistory key={`online-${node.id}`} serverId={node.id} />
 
       {node.note && <p className="mt-10 max-w-[70ch] text-[14px] leading-relaxed whitespace-pre-line text-muted">{node.note}</p>}
 

@@ -2,7 +2,7 @@
 
 ## 1.1.2 — 2026-10-27
 
-- **Online time.** One panel per node: rate, totals, last active, a 24-hour bar for each day, and online or offline periods. Live updates no longer add another copy.
+- **Online time.** Detail, network, and online are one switch. Online time is the third choice: rate, totals, last active, a 24-hour bar for each day, and online or offline periods. Live updates no longer add another copy.
 - **Latency comparison.** The chart shows every monitor until a name is clicked. Further clicks add those monitors to the comparison; clearing the last one shows all of them again.
 - **Size.** The entry-script gate is 129 KB gzipped, to hold the online-time panel.
 
