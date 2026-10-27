@@ -7,20 +7,12 @@
 
 <p align="center">
   A calm status page for <a href="https://github.com/nezhahq/nezha">Nezha</a>.<br />
-  <sub>Thoughtful software. For everyday life.</sub>
+  <sub>A fork of <a href="https://github.com/foru17/zool-theme">foru17/zool-theme</a>, kept for <a href="https://github.com/bluenight91/zool-theme">this repository</a>.</sub>
 </p>
 
 <p align="center">
-  <a href="https://github.com/foru17/zool-theme/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/foru17/zool-theme?style=flat-square&color=191B1A&label=release" /></a>
-  <a href="https://github.com/foru17/zool-theme/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/foru17/zool-theme/total?style=flat-square&color=191B1A" /></a>
-  <a href="https://github.com/foru17/zool-theme/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/foru17/zool-theme?style=flat-square&color=191B1A" /></a>
-  <a href="https://github.com/foru17/zool-theme/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/foru17/zool-theme/ci.yml?branch=main&style=flat-square&label=ci" /></a>
-  <a href="https://github.com/foru17/zool-theme/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/foru17/zool-theme?style=flat-square&color=53695A" /></a>
+  <a href="https://github.com/bluenight91/zool-theme/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/bluenight91/zool-theme?style=flat-square&color=191B1A&label=release" /></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-53695A?style=flat-square" /></a>
-  <br />
-  <img alt="Nezha v1" src="https://img.shields.io/badge/Nezha-v1-B8C8BE?style=flat-square" />
-  <img alt="Zero external requests" src="https://img.shields.io/badge/external%20requests-0-B8C8BE?style=flat-square" />
-  <img alt="Languages" src="https://img.shields.io/badge/i18n-en%20·%20zh--CN%20·%20zh--TW%20·%20ja-B8C8BE?style=flat-square" />
 </p>
 
 <p align="center">
@@ -31,102 +23,122 @@
   <img src="docs/screenshots/home-light.png" alt="ZOOL in light mode" width="880" />
 </p>
 
-## Install with an AI agent
+## Install
 
-Give this to Claude Code, Codex or any coding agent that can reach your server:
+Nezha installs this theme from **设置 → 前端管理 → 用户前端**.
 
-```text
-Install the ZOOL theme on my Nezha panel at https://<host>.
-Follow https://raw.githubusercontent.com/bluenight91/zool-theme/main/skills/zool-install/SKILL.md:
-confirm the panel, verify the latest dist.zip, install it from 设置 → 前端管理, verify, and tell me how to switch back.
-```
+1. Enter `https://github.com/bluenight91/zool-theme`.
+2. Install a release. The asset is `dist.zip`: public, not a draft, every file under `dist/`, with a nonempty `dist/index.html`.
+3. Click **启用**. The next request uses this theme. No panel restart.
 
-The skill asks before anything destructive and never deletes the theme directory. To keep it
-around, copy [`skills/zool-install`](skills/zool-install) into `~/.claude/skills/`.
+To go back, enable another frontend in the same list. The built-in one is `user-dist`. Nezha keeps each installed tag, so a new release is a new row. Details, billing notes and a panel that cannot reach GitHub: [docs/install-nezha.md](docs/install-nezha.md).
 
-## Install by hand
-
-In **设置 → 前端管理 → 用户前端**, enter `https://github.com/bluenight91/zool-theme`, install a release, then enable it. The release asset is `dist.zip`. Options, custom code and rollback: [docs/install-nezha.md](docs/install-nezha.md).
+An agent that can open the panel can follow [`skills/zool-install`](skills/zool-install). It asks before enabling a frontend and does not delete an installed copy.
 
 ## What you get
 
-- **A fleet at a glance.** Nodes online, bandwidth, traffic, what needs attention and monthly
-  cost — no averages that mean nothing.
-- **Readings with a shape.** CPU, memory and disk in green, amber and red cells that sweep as
-  they change; up and down side by side; square, brand-coloured system icons.
-- **Cards or a ledger.** Four cards across a laptop, a dense ledger for long lists, flat or
-  grouped at a press, filters by group and region you can share as a link.
-- **Honest states.** Waiting is not offline. A node that drops keeps its last readings and says
-  when it last reported; one that never reported says so.
-- **Node pages.** Live metrics, history and latency charts, system, network and billing detail.
-- **Everywhere.** Light, dark or system; English, 简体中文, 繁體中文, 日本語; built for phones.
+- **Home.** Online nodes, bandwidth, traffic, what needs attention, and monthly cost when a server's public note carries billing data. Cards or a ledger, flat or grouped, filtered by group and region.
+- **Readings.** CPU, memory and disk as cells. Upload above a baseline and download below it. A node that drops keeps its last readings and says when it last reported.
+- **Node page.** Three choices: **详情** (load charts), **网络** (latency), **在线** (online time). Latency starts with every monitor; click a name to keep that one, and click more to compare them. Online time shows the rate, totals, a 0–24 bar for each day, and online or offline periods. Signed-out visitors stay on 1 day.
+- **Sign-in.** The home page lists the password form and every OAuth provider the panel has configured. GitHub finishes on Nezha's own `/dashboard/login`.
+- **Languages and appearance.** English, 简体中文, 繁體中文, 日本語. Light, dark, or the system. Fonts, flags and icons ship with the theme.
 
-<p align="center">
-  <img src="docs/screenshots/states-light.png" alt="Offline, late and never-reported nodes" width="880" />
-</p>
+## Customize
 
-## Design
+**设置 → 自定义代码**, on the user frontend, runs before the page reads its settings. A `<style>` block applies as CSS. A `<script>` block runs, and the globals below are read afterwards. `"true"` and `"false"` count as booleans.
 
-- **Paper and ink.** Warm paper, ink text, hairline rules; colour only where a number needs it.
-- **Nothing louder than the data.** No gradients, glow or motion for its own sake.
-- **Private by default.** Fonts, flags and icons ship with the theme. It talks only to your
-  own panel.
-- **Small and maintained.** Hand-drawn SVG instead of a chart library, about 125 KB of gzipped
-  JavaScript, tested against real Nezha fleets.
+`dist/config.js` ships the same `window.ZoolConfig` keys, commented out. Custom code runs after that file. Assigning `window.ZoolConfig = { siteTitle: "…" }` overrides only the keys in that object; anything left out stays as `config.js` left it. Prefer the custom-code box: the next install replaces `dist/`.
 
-## Settings
+### `window` globals
 
-| Key | Default | Description |
+| Global | Effect |
+| --- | --- |
+| `window.CustomLogo` | Image before the site title. Only `http:` and `https:` URLs are used; a broken image falls back to the title |
+| `window.CustomDesc` | One line under the home-page title |
+| `window.ForceTheme` | `"light"` or `"dark"`. The visitor's own choice still wins after they pick one |
+| `window.DisableAnimatedMan` | `true` hides the footer wordmark. The element stays at `[data-zool="wordmark"]` |
+| `window.ShowNetTransfer` | Cumulative transfer stays visible unless this is `false`. Live rates stay either way |
+
+`window.ZoolConfig.logo`, `hideWordmark` and `showNetTransfer` are the same three settings. When both are set, the `window` global wins.
+
+### `window.ZoolConfig`
+
+| Key | Default | Effect |
 | --- | --- | --- |
-| `defaultAppearance` | `system` | `system`, `light` or `dark`; used until a visitor picks one |
+| `siteTitle` | *(empty)* | Site name in the header and the browser title. Empty keeps the name from the panel |
+| `defaultAppearance` | `system` | `system`, `light` or `dark`, until a visitor picks one |
 | `defaultView` | `ledger` | `ledger` or `cards` |
-| `defaultDensity` | `comfortable` | Ledger row height: `comfortable` or `compact` |
+| `defaultDensity` | `comfortable` | Ledger row height: `comfortable` or `compact`. Cards ignore it |
 | `defaultLanguage` | `auto` | `auto`, `en`, `zh-CN`, `zh-TW` or `ja` |
-| `siteTitle` | *(empty)* | Overrides the site name |
 | `showOverview` | `true` | Overview band on the home page |
-| `showCost` | `true` | Monthly cost, summed per currency and normalised to 30 days |
-| `showGroups` | `true` | Offer the group picker |
-| `defaultGrouped` | `false` | Default state of the visitor's "Show by group" button |
+| `showCost` | `true` | Monthly cost, summed per currency and normalised to 30 days. Needs billing data in the public note |
+| `showGroups` | `true` | Group filter. `false` also stops grouping the list |
+| `defaultGrouped` | `false` | Start with the list sectioned by group |
 | `showRegions` | `true` | Region filter |
 | `showBilling` | `true` | Price and expiry on cards |
-| `showOffline` | `true` | List offline nodes |
-| `hiddenNodes` | `[]` | Nodes hidden from the home page, search and the node switcher |
+| `showOffline` | `true` | List nodes that are not reporting |
+| `showNetTransfer` | `true` | Cumulative transfer. Live rates stay |
+| `hiddenNodes` | `[]` | Server ids hidden from the home page, search and the node switcher, for example `["12", "13"]` |
 | `hideAdminEntry` | `false` | Hide the sign-in button |
-| `loginMode` | `both` | `both`, `password`, `oauth`, or `dashboard` (open the panel login page) |
-| `footerNote` | *(empty)* | One line of text in the footer |
+| `loginMode` | `both` | See below |
+| `hideWordmark` | `false` | Hide the footer wordmark |
+| `footerNote` | *(empty)* | One line above the credit |
+| `logo` | *(empty)* | Same role as `window.CustomLogo` |
 
-Set these from **设置 → 自定义代码** on `window.ZoolConfig`, or in `dist/config.js` before the page loads. Custom code runs afterwards and wins. See [docs/install-nezha.md](docs/install-nezha.md#custom-code) for the logo, description and the other `window` globals.
+`loginMode`:
+
+| Value | Sign-in |
+| --- | --- |
+| `both` | Password form, and a button for each OAuth provider the panel has configured. No providers means the password form only |
+| `password` | Username and password only |
+| `oauth` | Configured providers only. If none are configured, the password form stays |
+| `dashboard` | The home-page button opens `/dashboard/login` |
+
+The password block is `[data-zool-login="password"]`. The provider block is `[data-zool-login="oauth"]`. Hiding one of those with CSS does not remove the other. Class names from other themes, such as `.pb-4`, do not match anything here.
+
+```html
+<script>
+  window.ZoolConfig = {
+    siteTitle: "我的面板",
+    loginMode: "both"
+  };
+  window.CustomLogo = "https://example.com/logo.png";
+  window.CustomDesc = "醉后不知天在水，满船清梦压星河。";
+  window.ForceTheme = "light";
+  window.DisableAnimatedMan = "false";
+  window.ShowNetTransfer = "true";
+</script>
+<style>
+  [data-zool="wordmark"] { display: none; }
+</style>
+```
+
+Price, cycle and traffic quota are not panel fields. Put them in the server's public note as JSON. The shape is in [docs/install-nezha.md](docs/install-nezha.md#billing-data).
 
 ## Develop
 
-Node.js 22+ and pnpm.
+Node.js 22 or newer, and pnpm.
 
 ```bash
 pnpm install
-pnpm dev:demo          # synthetic fleet, every node state included
-pnpm dev               # Nezha: proxies /api to ZOOL_UPSTREAM, or demo data when it is unset
+pnpm dev:demo          # synthetic fleet
+pnpm dev               # proxies /api to ZOOL_UPSTREAM, or demo data when that is unset
 pnpm check             # types, tests, i18n
 pnpm build && pnpm check:size && pnpm package
 ```
 
-Architecture and adding a backend: [docs/architecture.md](docs/architecture.md). Instrument
-rules: [docs/instruments.md](docs/instruments.md).
+`pnpm package` writes `release/dist.zip`. A `v*` tag whose name matches `package.json` publishes that zip. The release title is `ZOOL`, which is the name Nezha shows beside the tag.
+
+Layout of the code: [docs/architecture.md](docs/architecture.md). How the home-page instruments are drawn: [docs/instruments.md](docs/instruments.md).
 
 ## Credits
 
-Built on the public API of [Nezha](https://github.com/nezhahq/nezha). Typeface [Inter](https://rsms.me/inter/) (SIL OFL),
-UI icons [Lucide](https://lucide.dev) (ISC), flags [flag-icons](https://github.com/lipis/flag-icons)
-(MIT), system icons [Simple Icons](https://simpleicons.org) (CC0; marks belong to their owners,
-tile colours from Simple Icons metadata, the Windows shape is drawn for this project).
+This repository is a fork of [foru17/zool-theme](https://github.com/foru17/zool-theme) by ZOOL LLC. The theme still talks to [Nezha](https://github.com/nezhahq/nezha). Maintained here by [@luoleiorg](https://x.com/luoleiorg).
 
-## Star history
-
-<a href="https://star-history.com/#foru17/zool-theme&Date">
-  <img src="https://api.star-history.com/svg?repos=foru17/zool-theme&type=Date" alt="Star history" width="600" />
-</a>
+Typeface [Inter](https://rsms.me/inter/) (SIL OFL). UI icons [Lucide](https://lucide.dev) (ISC). Flags [flag-icons](https://github.com/lipis/flag-icons) (MIT). System icons [Simple Icons](https://simpleicons.org) (CC0). Those marks belong to their owners. Tile colours come from Simple Icons metadata. The Windows shape is drawn for this project.
 
 ## License
 
-[MIT](LICENSE). The ZOOL name and logo are trademarks of ZOOL LLC.
+[MIT](LICENSE), the same license as the original repository. The copyright notice in that file stays with the work.
 
-<p align="center"><sub>A theme by <a href="https://x.com/luoleiorg">@luoleiorg</a></sub></p>
+The ZOOL name and logo are trademarks of ZOOL LLC and are not covered by the MIT license. This fork keeps the attribution and does not present itself as an official ZOOL product.
