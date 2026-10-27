@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.4 — 2026-10-27
+
+- **Name.** The release title is ZOOL. Nezha lists an install as “ZOOL · v1.1.4” instead of repeating the version.
+
 ## 1.1.3 — 2026-10-27
 
 - **Rate spark.** Samples are joined into one line, drawn at the card's own width, so a slow report no longer shows up as separate ticks and diamonds.
