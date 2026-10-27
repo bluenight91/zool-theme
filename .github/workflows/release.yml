@@ -39,8 +39,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF_NAME}"
+          notes="ZOOL ${tag} for Nezha. In 设置 → 前端管理 → 用户前端, install this repository. The asset Nezha reads is dist.zip."
           # Drafts are dropped by Nezha's frontend installer, so a stable tag is published immediately.
           # `--prerelease` is a switch: passing `=false` would still mark the release as a prerelease.
-          args=(release create "$tag" release/dist.zip --verify-tag --title "$tag" --notes "ZOOL ${tag} for Nezha. In 设置 → 前端管理 → 用户前端, install this repository. The asset Nezha reads is dist.zip.")
-          [[ "$tag" != *-* ]] || args+=(--prerelease)
-          gh "${args[@]}"
+          # Replacing the asset keeps the same tag, so the dashboard does not gain another version.
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release/dist.zip --clobber
+            gh release edit "$tag" --title "$tag" --notes "$notes" --target "$(git rev-parse HEAD)"
+          else
+            args=(release create "$tag" release/dist.zip --verify-tag --title "$tag" --notes "$notes")
+            [[ "$tag" != *-* ]] || args+=(--prerelease)
+            gh "${args[@]}"
+          fi
