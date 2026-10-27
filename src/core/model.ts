@@ -138,6 +138,25 @@ export interface PingData {
   points: PingPoint[]
 }
 
+/** One calendar day of uptime, in the dashboard's timezone. */
+export interface OnlineDay {
+  /** `YYYY-MM-DD` in the dashboard timezone. */
+  date: string
+  onlineSeconds: number
+  /** Online stretches as fractions of that day, from 0 to 1. */
+  segments: { from: number; to: number }[]
+}
+
+export interface OnlineHistory {
+  maxDays: number
+  timeZone: string
+  onlineSeconds: number
+  offlineSeconds: number
+  /** 0–100. */
+  onlineRate: number
+  daily: OnlineDay[]
+}
+
 export interface Session {
   loggedIn: boolean
   username?: string
@@ -163,6 +182,10 @@ export interface MonitorAdapter {
   readonly poweredBy: { name: string; url: string }
   /** History ranges in hours offered on the node page; 0 = live buffer. */
   readonly historyRanges: number[]
+  /** Latency ranges in hours. When omitted, the node page reuses `historyRanges`. */
+  readonly pingRanges?: readonly number[]
+  /** Longest range a signed-out visitor may open. Longer choices stay visible and locked. */
+  readonly guestRangeHours?: number
   /** True when the login form needs a 2FA field up-front. */
   readonly supportsTwoFactor: boolean
   loadSite(): Promise<SiteInfo>
@@ -173,6 +196,8 @@ export interface MonitorAdapter {
   reset?(): void
   loadHistory(id: string, hours: number): Promise<HistoryPoint[]>
   loadPing(id: string, hours: number): Promise<PingData>
+  /** Online periods for a server. Null when this dashboard has no such history. */
+  loadOnlineHistory?(id: string, days: number): Promise<OnlineHistory | null>
   login(username: string, password: string, code?: string): Promise<LoginResult>
   oauthUrl(site: SiteInfo): string | null
   nodePath(id: string): string

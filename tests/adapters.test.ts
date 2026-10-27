@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupIndex, mapFrame, mapState, parsePublicNote, type NezhaFrame, type NezhaGroup } from '../src/adapters/nezha'
+import { groupIndex, mapFrame, mapServiceHistory, mapState, parsePublicNote, servicePeriod, type NezhaFrame, type NezhaGroup } from '../src/adapters/nezha'
 import nezhaFrame from './fixtures/nezha-frame.json'
 import nezhaGroups from './fixtures/nezha-groups.json'
 
@@ -63,5 +63,24 @@ describe('nezha mapState last_active', () => {
     const s = mapState({ id: 1, name: 'x', last_active: '2026-09-16T07:59:50Z' } as never, now)
     expect(s.online).toBe(true)
     expect(s.at).toBe(Date.parse('2026-09-16T07:59:50Z'))
+  })
+})
+
+describe('nezha service history', () => {
+  it('uses monitor_name and keeps the older service_name field', () => {
+    const data = mapServiceHistory([
+      { monitor_id: 2, monitor_name: 'Tokyo', display_index: 1, created_at: [1_700_000_000_000], avg_delay: [12] },
+      { monitor_id: 9, monitor_name: 'Home', display_index: 5, created_at: [1_700_000_000_000], avg_delay: [4] },
+      { service_id: 3, service_name: 'Legacy', created_at: [1_700_000_000], avg_delay: [8] },
+    ])
+    expect(data.tasks.map((task) => task.name)).toEqual(['Home', 'Tokyo', 'Legacy'])
+    expect(data.points.find((point) => point.task === 3)?.at).toBe(1_700_000_000_000)
+    expect(data.tasks[0]).toMatchObject({ avg: 4, min: 4, max: 4 })
+  })
+
+  it('asks the dashboard for 1, 7, or 30 days', () => {
+    expect(servicePeriod(24)).toBe('1d')
+    expect(servicePeriod(168)).toBe('7d')
+    expect(servicePeriod(720)).toBe('30d')
   })
 })

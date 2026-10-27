@@ -9,6 +9,7 @@ import { regionName, stripFlag } from '@/core/region'
 import { summariseDay } from '@/core/summary'
 import { Chart, type ChartSeries } from '@/components/Chart'
 import { HourGrid } from '@/components/HourGrid'
+import { OnlineHistory } from '@/components/OnlineHistory'
 import { BlockGrid, levelFor, MirrorSpark, TickBar } from '@/components/instruments'
 import { coreTicks, liveSpanMinutes, memoryBlocks, recentBuckets } from '@/core/live'
 import { Popover } from '@/components/Popover'
@@ -262,7 +263,7 @@ function PingChart({ data, hours }: { data: PingData; hours: number }) {
             >
               <span className="flex min-w-0 items-center gap-2.5">
                 <span className="h-[2px] w-4 shrink-0 rounded-full" style={{ background: PING_COLORS[i % PING_COLORS.length] }} />
-                <span className="truncate">{task.name}</span>
+                <span className="truncate" title={task.name}>{task.name}</span>
               </span>
               <span className="num text-right">
                 <span className="text-muted sm:hidden">{t('node.avg')} </span>
@@ -288,13 +289,18 @@ function PingChart({ data, hours }: { data: PingData; hours: number }) {
 function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   const { t } = useTranslation()
   const recordHours = useStore((s) => s.site?.recordHours ?? 0)
+  const loggedIn = useStore((s) => s.session.loggedIn)
   const [range, setRange] = useState(0)
   // Only the live range needs to follow the socket; history ranges stay put.
   const liveVersion = useStore((s) => (range === 0 ? s.liveVersion : -1))
   const ranges = adapter.historyRanges.filter((h) => h === 0 || h <= Math.max(recordHours, 1))
-  const pingRanges = adapter.target === 'nezha' ? [24] : ranges.filter((h) => h > 0)
+  const pingRanges = adapter.pingRanges ?? ranges.filter((h) => h > 0)
+  const rangeLocked = (h: number) => adapter.guestRangeHours != null && !loggedIn && h > adapter.guestRangeHours
   const [tab, setTab] = useState<Tab>('load')
   const [pingRange, setPingRange] = useState(pingRanges.includes(24) ? 24 : (pingRanges[0] ?? 24))
+  useEffect(() => {
+    if (rangeLocked(pingRange)) setPingRange(adapter.guestRangeHours ?? 24)
+  }, [loggedIn, pingRange])
   const [history, setHistory] = useState<{ key: string; points: HistoryPoint[] } | null>(null)
   const [ping, setPing] = useState<{ key: string; data: PingData } | null>(null)
   const [error, setError] = useState(false)
@@ -359,17 +365,22 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
         )}
         {activeRanges.length > 1 && (
           <div className="scroll-x flex gap-0.5" role="group">
-            {activeRanges.map((h) => (
-              <button
-                key={h}
-                type="button"
-                className="pill min-h-8 px-3"
-                aria-pressed={activeRange === h}
-                onClick={() => (tab === 'load' ? setRange(h) : setPingRange(h))}
-              >
-                {rangeLabel(h)}
-              </button>
-            ))}
+            {activeRanges.map((h) => {
+              const locked = rangeLocked(h)
+              return (
+                <button
+                  key={h}
+                  type="button"
+                  className={`pill min-h-8 px-3 ${locked ? 'cursor-not-allowed opacity-40' : ''}`}
+                  aria-pressed={activeRange === h}
+                  disabled={locked}
+                  title={locked ? t('node.memberRange') : undefined}
+                  onClick={() => (tab === 'load' ? setRange(h) : setPingRange(h))}
+                >
+                  {rangeLabel(h)}
+                </button>
+              )
+            })}
           </div>
         )}
         {((tab === 'load' && range > 0) || tab === 'ping') && (
@@ -693,6 +704,8 @@ export function NodePage({ id }: { id: string }) {
           <HourGrid points={week} />
         </div>
       )}
+
+      <OnlineHistory key={node.id} serverId={node.id} />
 
       {node.note && <p className="mt-10 max-w-[70ch] text-[14px] leading-relaxed whitespace-pre-line text-muted">{node.note}</p>}
 
