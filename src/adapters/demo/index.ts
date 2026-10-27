@@ -1,4 +1,5 @@
 import { emptySnapshot, type HistoryPoint, type MonitorAdapter, type NodeInfo, type Snapshot } from '@/core/model'
+import { mapOnlineHistory } from '@/core/online'
 
 /**
  * A self-contained adapter with synthetic data, for `pnpm dev:demo`, screenshots and
@@ -140,6 +141,7 @@ export const demo: MonitorAdapter = {
   adminUrl: '#',
   poweredBy: { name: 'Demo data', url: 'https://github.com/foru17/zool-theme' },
   historyRanges: [0, 1, 4, 24, 168, 720],
+  pingRanges: [24, 168, 720],
   supportsTwoFactor: false,
 
   loadSite: async () => ({
@@ -179,6 +181,8 @@ export const demo: MonitorAdapter = {
     const tasks = [
       { id: 1, name: 'Cloudflare 1.1.1.1', interval: 60, loss: 0.2, avg: 0, min: 0, max: 0 },
       { id: 2, name: 'Home gateway', interval: 60, loss: 1.4, avg: 0, min: 0, max: 0 },
+      { id: 3, name: 'Tokyo DNS', interval: 60, loss: 0.4, avg: 0, min: 0, max: 0 },
+      { id: 4, name: 'Origin HTTPS', interval: 60, loss: 2.1, avg: 0, min: 0, max: 0 },
     ]
     const points = []
     const n = Math.min(240, hours * 30)
@@ -199,6 +203,35 @@ export const demo: MonitorAdapter = {
       task.max = Math.max(...values)
     }
     return { tasks, points }
+  },
+
+  async loadOnlineHistory(_id, days) {
+    const end = Date.now()
+    const start = end - days * 86_400_000
+    const first = start + 3 * 3_600_000
+    const gap = end - 5 * 3_600_000
+    const second = end - 2 * 3_600_000
+    const onlineMs = end - second + (gap - first)
+    return mapOnlineHistory({
+      timezone: 'Asia/Shanghai',
+      max_days: 30,
+      days,
+      window_start: new Date(start).toISOString(),
+      window_end: new Date(end).toISOString(),
+      total_online_seconds: Math.floor(onlineMs / 1000),
+      online_rate: (onlineMs / (end - start)) * 100,
+      currently_online: true,
+      last_active: new Date(end).toISOString(),
+      periods: [
+        { start: new Date(first).toISOString(), end: new Date(gap).toISOString(), ongoing: false },
+        { start: new Date(second).toISOString(), end: new Date(end).toISOString(), ongoing: true },
+      ],
+      daily: Array.from({ length: days + 1 }, (_, i) => {
+        const at = start + i * 86_400_000
+        const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(at)
+        return { date, online_seconds: 20 * 3600 }
+      }).filter((day, index, list) => list.findIndex((item) => item.date === day.date) === index),
+    })
   },
 
   login: async () => ({ ok: false, reason: 'invalid', message: 'Sign-in is disabled in the demo.' }),

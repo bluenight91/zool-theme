@@ -10,6 +10,7 @@ import { summariseDay } from '@/core/summary'
 import { Chart, type ChartSeries } from '@/components/Chart'
 import { HourGrid } from '@/components/HourGrid'
 import { OnlineHistory } from '@/components/OnlineHistory'
+import { togglePing } from '@/core/ping'
 import { BlockGrid, levelFor, MirrorSpark, TickBar } from '@/components/instruments'
 import { coreTicks, liveSpanMinutes, memoryBlocks, recentBuckets } from '@/core/live'
 import { Popover } from '@/components/Popover'
@@ -239,48 +240,59 @@ const PING_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(
 function PingChart({ data, hours }: { data: PingData; hours: number }) {
   const { t } = useTranslation()
   const fmt = useTimeFormats(hours)
-  const [hidden, setHidden] = useState<Set<number>>(new Set())
-  const series: ChartSeries[] = data.tasks
-    .filter((task) => !hidden.has(task.id))
-    .map((task) => ({
-      key: String(task.id),
-      label: task.name,
-      color: PING_COLORS[data.tasks.indexOf(task) % PING_COLORS.length],
-      points: data.points.filter((p) => p.task === task.id).map((p) => ({ t: p.at, v: p.value >= 0 ? p.value : null })),
-    }))
+  const [picked, setPicked] = useState<number[]>([])
+  const visible = picked.length === 0 ? data.tasks : data.tasks.filter((task) => picked.includes(task.id))
+  const series: ChartSeries[] = visible.map((task) => ({
+    key: String(task.id),
+    label: task.name,
+    color: PING_COLORS[data.tasks.indexOf(task) % PING_COLORS.length],
+    points: data.points.filter((p) => p.task === task.id).map((p) => ({ t: p.at, v: p.value >= 0 ? p.value : null })),
+  }))
 
   return (
     <div className="card p-5">
+      <div className="mb-3 flex items-center justify-end">
+        {picked.length > 0 && (
+          <button type="button" className="text-[12px] text-muted underline-offset-4 hover:text-ink hover:underline" onClick={() => setPicked([])}>
+            {t('node.showAllMonitors')}
+          </button>
+        )}
+      </div>
       <Chart series={series} height={240} format={(v) => `${formatNumber(v, 0)} ms`} formatTime={fmt.axis} formatTooltipTime={fmt.tooltip} label={t('node.tabPing')} />
       <ul className="mt-5 divide-y divide-line border-t border-line">
-        {data.tasks.map((task, i) => (
-          <li key={task.id}>
-            <button
-              type="button"
-              aria-pressed={!hidden.has(task.id)}
-              onClick={() => setHidden((h) => (h.has(task.id) ? new Set([...h].filter((x) => x !== task.id)) : new Set([...h, task.id])))}
-              className={`grid w-full grid-cols-[1fr_auto] items-center gap-4 py-3 text-left text-[13px] sm:grid-cols-[minmax(0,1fr)_repeat(4,72px)] ${hidden.has(task.id) ? 'opacity-40' : ''}`}
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <span className="h-[2px] w-4 shrink-0 rounded-full" style={{ background: PING_COLORS[i % PING_COLORS.length] }} />
-                <span className="truncate" title={task.name}>{task.name}</span>
-              </span>
-              <span className="num text-right">
-                <span className="text-muted sm:hidden">{t('node.avg')} </span>
-                {formatNumber(task.avg, 1)} ms
-              </span>
-              <span className="num hidden text-right text-muted sm:block">
-                {t('node.min')} {formatNumber(task.min, 0)}
-              </span>
-              <span className="num hidden text-right text-muted sm:block">
-                {t('node.max')} {formatNumber(task.max, 0)}
-              </span>
-              <span className={`num hidden text-right sm:block ${task.loss > 5 ? 'text-danger' : 'text-muted'}`}>
-                {t('node.loss')} {formatNumber(task.loss, 1)}%
-              </span>
-            </button>
-          </li>
-        ))}
+        {data.tasks.map((task, i) => {
+          const on = picked.length === 0 || picked.includes(task.id)
+          return (
+            <li key={task.id}>
+              <button
+                type="button"
+                aria-pressed={picked.includes(task.id)}
+                onClick={() => setPicked((current) => togglePing(current, task.id))}
+                className={`grid w-full grid-cols-[1fr_auto] items-center gap-4 py-3 text-left text-[13px] sm:grid-cols-[minmax(0,1fr)_repeat(4,72px)] ${on ? '' : 'opacity-40'}`}
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="h-[3px] w-4 shrink-0 rounded-full" style={{ background: PING_COLORS[i % PING_COLORS.length] }} />
+                  <span className="truncate" title={task.name}>
+                    {task.name}
+                  </span>
+                </span>
+                <span className="num text-right">
+                  <span className="text-muted sm:hidden">{t('node.avg')} </span>
+                  {formatNumber(task.avg, 1)} ms
+                </span>
+                <span className="num hidden text-right text-muted sm:block">
+                  {t('node.min')} {formatNumber(task.min, 0)}
+                </span>
+                <span className="num hidden text-right text-muted sm:block">
+                  {t('node.max')} {formatNumber(task.max, 0)}
+                </span>
+                <span className={`num hidden text-right sm:block ${task.loss > 5 ? 'text-danger' : 'text-muted'}`}>
+                  {t('node.loss')} {formatNumber(task.loss, 1)}%
+                </span>
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
@@ -444,6 +456,7 @@ export function NodePage({ id }: { id: string }) {
   const day = useDaySummary(nodeId, snap)
   const week = useWeekHistory(nodeId)
   const liveTick = useStore((s) => s.liveVersion)
+  const fed = useStore((s) => s.fed)
   const cores = coreTicks(snap?.cpu ?? 0, node?.cpuCores ?? 0)
   const mem = memoryBlocks(snap?.memUsed ?? 0, snap?.memTotal || node?.memTotal || 0, node?.swapTotal ?? 0)
   const tickGap = cores.ticks > 16 ? 2 : 4
@@ -479,7 +492,6 @@ export function NodePage({ id }: { id: string }) {
 
   const online = Boolean(snap?.online)
   // Before the first live frame the node is waiting, not down.
-  const fed = useStore((s) => s.fed)
   const pending = !snap && !fed
   const memTotal = snap?.memTotal || node.memTotal
   const diskTotal = snap?.diskTotal || node.diskTotal
@@ -705,11 +717,11 @@ export function NodePage({ id }: { id: string }) {
         </div>
       )}
 
-      <OnlineHistory key={node.id} serverId={node.id} />
+      <OnlineHistory key={`online-${node.id}`} serverId={node.id} />
 
       {node.note && <p className="mt-10 max-w-[70ch] text-[14px] leading-relaxed whitespace-pre-line text-muted">{node.note}</p>}
 
-      <NodeCharts key={node.id} node={node} snap={snap} />
+      <NodeCharts key={`charts-${node.id}`} node={node} snap={snap} />
     </div>
   )
 }
