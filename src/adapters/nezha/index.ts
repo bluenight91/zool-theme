@@ -1,11 +1,13 @@
 import { readRuntime, resetRuntimeGlobals } from '@/core/custom-code'
 import { injectCustomCode } from '@/core/inject-custom-code'
 import { request, resilientSocket, wsUrl } from '@/core/http'
+import { mapOnlineHistory, type OnlineHistoryPayload } from '@/core/online'
 import type {
   LiveEvent,
   LoginResult,
   MonitorAdapter,
   NodeInfo,
+  OnlineHistory,
   PingData,
   Session,
   SiteInfo,
@@ -75,11 +77,56 @@ interface NezhaSetting {
   tsdb_enabled?: boolean
 }
 
-interface NezhaServiceInfo {
-  service_id: number
-  service_name: string
-  created_at: number[] | null
-  avg_delay: number[] | null
+/** Current dashboards send `monitor_*`. Older ones sent `service_*`. */
+export interface ServiceHistoryRow {
+  monitor_id?: number
+  service_id?: number
+  monitor_name?: string
+  service_name?: string
+  server_name?: string
+  display_index?: number
+  created_at?: Array<number | null> | null
+  avg_delay?: Array<number | null> | null
+}
+
+export function servicePeriod(hours: number): '1d' | '7d' | '30d' {
+  if (hours >= 30 * 24) return '30d'
+  if (hours >= 7 * 24) return '7d'
+  return '1d'
+}
+
+function stamp(t: number) {
+  return t > 0 && t < 1e12 ? t * 1000 : t
+}
+
+/** One row per latency monitor. Names come from `monitor_name` on current dashboards. */
+export function mapServiceHistory(rows: ServiceHistoryRow[]): PingData {
+  const tasks: PingData['tasks'] = []
+  const points: PingData['points'] = []
+  const sorted = [...rows].sort((a, b) => (b.display_index ?? 0) - (a.display_index ?? 0) || (a.monitor_id ?? a.service_id ?? 0) - (b.monitor_id ?? b.service_id ?? 0))
+  for (const row of sorted) {
+    const id = Number(row.monitor_id ?? row.service_id ?? 0)
+    const name = (row.monitor_name || row.service_name || row.server_name || '').trim() || `#${id}`
+    const at = row.created_at ?? []
+    const delay = row.avg_delay ?? []
+    const values = delay.filter((v): v is number => typeof v === 'number' && v > 0)
+    tasks.push({
+      id,
+      name,
+      interval: 0,
+      loss: 0,
+      avg: values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0,
+      min: values.length ? Math.min(...values) : 0,
+      max: values.length ? Math.max(...values) : 0,
+    })
+    at.forEach((t, i) => {
+      if (typeof t !== 'number') return
+      const sample = delay[i]
+      points.push({ at: stamp(t), task: id, value: typeof sample === 'number' ? sample : -1 })
+    })
+  }
+  points.sort((a, b) => a.at - b.at)
+  return { tasks, points }
 }
 
 /* ---------- public_note (nezha-dash / Nazhua convention) ---------- */
@@ -353,6 +400,8 @@ export const nezha: MonitorAdapter = {
   adminUrl: '/dashboard',
   poweredBy: { name: 'Nezha', url: 'https://github.com/nezhahq/nezha' },
   historyRanges: [0],
+  pingRanges: [24, 168, 720],
+  guestRangeHours: 24,
   supportsTwoFactor: false,
 
   async loadSite(): Promise<SiteInfo> {
@@ -405,27 +454,15 @@ export const nezha: MonitorAdapter = {
     return []
   },
 
-  async loadPing(id): Promise<PingData> {
-    const res = await request<Common<NezhaServiceInfo[]>>(`/api/v1/server/${encodeURIComponent(id)}/service`)
-    const tasks: PingData['tasks'] = []
-    const points: PingData['points'] = []
-    for (const s of res.data ?? []) {
-      const at = s.created_at ?? []
-      const delay = s.avg_delay ?? []
-      const values = delay.filter((v) => v > 0)
-      tasks.push({
-        id: s.service_id,
-        name: s.service_name,
-        interval: 0,
-        loss: 0,
-        avg: values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0,
-        min: values.length ? Math.min(...values) : 0,
-        max: values.length ? Math.max(...values) : 0,
-      })
-      at.forEach((t, i) => points.push({ at: t, task: s.service_id, value: delay[i] ?? -1 }))
-    }
-    points.sort((a, b) => a.at - b.at)
-    return { tasks, points }
+  async loadPing(id, hours): Promise<PingData> {
+    const period = servicePeriod(hours)
+    const res = await request<Common<ServiceHistoryRow[]>>(`/api/v1/server/${encodeURIComponent(id)}/service?period=${period}`)
+    return mapServiceHistory(res.data ?? [])
+  },
+
+  async loadOnlineHistory(id, days): Promise<OnlineHistory | null> {
+    const res = await request<Common<OnlineHistoryPayload>>(`/api/v1/server/${encodeURIComponent(id)}/online-history?days=${days}`)
+    return res.success && res.data ? mapOnlineHistory(res.data) : null
   },
 
   async login(username, password): Promise<LoginResult> {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 — 2026-10-27
+
+- **Latency names.** The chart lists each monitor by the name the dashboard sends (`monitor_name`).
+- **Latency range.** The latency tab offers 1, 7, and 30 days, the same windows as the official theme. Signed-out visitors stay on 1 day; the longer choices stay visible and locked.
+- **Online time.** A node page shows the dashboard's online periods: rate, time online, time offline, and a bar for each day.
+- **Footer.** The page credit is only “@luoleiorg 出品的主题”.
+
 ## 1.1.0 — 2026-10-27
 
 ZOOL is a Nezha theme, installed from the dashboard.
