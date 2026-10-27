@@ -30,6 +30,8 @@ export interface SiteInfo {
   recordHours: number
   oauth: boolean
   oauthProvider?: string
+  /** Configured OAuth providers, in dashboard order. Empty when none are set up. */
+  oauthProviders: string[]
   /** False when the backend only allows OAuth sign-in. */
   passwordLogin: boolean
 }
@@ -234,7 +236,8 @@ export interface MonitorAdapter {
   /** Online periods for a server. Null when this dashboard has no such history. */
   loadOnlineHistory?(id: string, days: number): Promise<OnlineHistory | null>
   login(username: string, password: string, code?: string): Promise<LoginResult>
-  oauthUrl(site: SiteInfo): string | null
+  /** Browser location for one configured provider, or null when it cannot be started. */
+  oauthRedirect(provider: string): Promise<string | null>
   nodePath(id: string): string
   matchNodePath(pathname: string): string | null
 }

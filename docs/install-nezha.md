@@ -27,8 +27,9 @@ To go back, enable the previous frontend in the same list (the built-in one is `
 | `window.ForceTheme` | `"light"` or `"dark"`, the default appearance until a visitor picks one |
 | `window.DisableAnimatedMan` | Hides the footer wordmark when true |
 | `window.ShowNetTransfer` | Cumulative transfer stays visible unless this is false |
+| `window.ZoolConfig.loginMode` | `both` (default), `password`, `oauth`, or `dashboard`. `dashboard` sends the home-page sign-in button to `/dashboard/login` |
 
-The same `<style>` block can target the wordmark with `[data-zool="wordmark"]`. Class names from other themes, such as `.pb-4`, do not match anything here.
+The same `<style>` block can target the wordmark with `[data-zool="wordmark"]`. The sign-in dialog marks the password form with `[data-zool-login="password"]` and the OAuth buttons with `[data-zool-login="oauth"]`, so one of those blocks can be hidden without changing `loginMode`. Class names from other themes, such as `.pb-4`, do not match anything here.
 
 ```html
 <script>

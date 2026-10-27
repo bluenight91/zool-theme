@@ -104,4 +104,11 @@ describe('settings', () => {
     expect(normalizeSettings({ logo: 'javascript:alert(1)' }).logo).toBe('')
     expect(normalizeSettings({ logo: 'https://example.com/logo.png' }).logo).toBe('https://example.com/logo.png')
   })
+
+  it('keeps both sign-in methods unless a known login mode is set', () => {
+    expect(normalizeSettings(undefined).loginMode).toBe('both')
+    expect(normalizeSettings({ loginMode: 'oauth' }).loginMode).toBe('oauth')
+    expect(normalizeSettings({ loginMode: 'dashboard' }).loginMode).toBe('dashboard')
+    expect(normalizeSettings({ loginMode: 'redirect' }).loginMode).toBe('both')
+  })
 })

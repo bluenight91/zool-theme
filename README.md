@@ -92,6 +92,7 @@ In **设置 → 前端管理 → 用户前端**, enter `https://github.com/bluen
 | `showOffline` | `true` | List offline nodes |
 | `hiddenNodes` | `[]` | Nodes hidden from the home page, search and the node switcher |
 | `hideAdminEntry` | `false` | Hide the sign-in button |
+| `loginMode` | `both` | `both`, `password`, `oauth`, or `dashboard` (open the panel login page) |
 | `footerNote` | *(empty)* | One line of text in the footer |
 
 Set these from **设置 → 自定义代码** on `window.ZoolConfig`, or in `dist/config.js` before the page loads. Custom code runs afterwards and wins. See [docs/install-nezha.md](docs/install-nezha.md#custom-code) for the logo, description and the other `window` globals.

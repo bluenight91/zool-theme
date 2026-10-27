@@ -17,7 +17,12 @@ function LoginForm() {
   const [needCode, setNeedCode] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ kind: 'error' | 'info' | 'ok'; text: string } | null>(null)
-  const oauth = site ? adapter.oauthUrl(site) : null
+  const loginMode = useStore((s) => s.settings.loginMode)
+  const providers = site?.oauthProviders ?? []
+  const showPassword =
+    site?.passwordLogin !== false &&
+    (loginMode === 'password' || loginMode === 'both' || (loginMode === 'oauth' && providers.length === 0))
+  const showOauth = (loginMode === 'both' || loginMode === 'oauth') && providers.length > 0
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -39,6 +44,19 @@ function LoginForm() {
     }
   }
 
+  const startOauth = async (provider: string) => {
+    if (busy) return
+    setBusy(true)
+    setMessage(null)
+    const url = await adapter.oauthRedirect(provider)
+    if (!url) {
+      setBusy(false)
+      setMessage({ kind: 'error', text: t('auth.network') })
+      return
+    }
+    window.location.assign(url)
+  }
+
   return (
     <div className="relative p-7 sm:p-9" aria-labelledby={titleId}>
       <button type="button" className="icon-btn absolute top-4 right-4" aria-label={t('auth.close')} onClick={() => closeDialog('login')}>
@@ -50,8 +68,14 @@ function LoginForm() {
       </h2>
       <p className="mt-2 text-[14px] text-muted">{t('auth.subtitle', { site: siteTitle })}</p>
 
-      {site?.passwordLogin !== false && (
-      <form className="mt-7 space-y-4" onSubmit={submit}>
+      {loginMode === 'dashboard' && adapter.target === 'nezha' ? (
+        <a href={`${adapter.adminUrl}/login`} className="btn-primary mt-7 flex min-h-12 w-full items-center justify-center">
+          {t('auth.signIn')}
+        </a>
+      ) : null}
+
+      {showPassword && (
+      <form className="mt-7 space-y-4" data-zool-login="password" onSubmit={submit}>
         <label className="block">
           <span className="mb-1.5 block text-[13px] text-muted">{t('auth.username')}</span>
           <input className="field" autoComplete="username" autoFocus required value={username} onChange={(e) => setUsername(e.target.value)} />
@@ -83,23 +107,15 @@ function LoginForm() {
             />
           </label>
         )}
-        {message && (
-          <p
-            role={message.kind === 'error' ? 'alert' : 'status'}
-            className={`text-[13px] ${message.kind === 'error' ? 'text-danger' : message.kind === 'ok' ? 'text-sage-text' : 'text-muted'}`}
-          >
-            {message.text}
-          </p>
-        )}
         <button type="submit" className="btn-primary mt-2 w-full" disabled={busy}>
           {busy ? t('auth.submitting') : t('auth.submit')}
         </button>
       </form>
       )}
 
-      {oauth && (
-        <>
-          {site?.passwordLogin !== false ? (
+      {showOauth && (
+        <div data-zool-login="oauth">
+          {showPassword ? (
             <div className="my-5 flex items-center gap-3 text-[12px] text-muted">
               <span className="h-px flex-1 bg-line" />
               {t('auth.or')}
@@ -108,10 +124,22 @@ function LoginForm() {
           ) : (
             <div className="mt-7" />
           )}
-          <a href={oauth} className="btn-outline min-h-12 w-full">
-            {t('auth.oauth', { provider: site?.oauthProvider ? site.oauthProvider[0].toUpperCase() + site.oauthProvider.slice(1) : 'SSO' })}
-          </a>
-        </>
+          <div className="space-y-3">
+            {providers.map((provider) => (
+              <button key={provider} type="button" className="btn-outline min-h-12 w-full" disabled={busy} onClick={() => startOauth(provider)}>
+                {t('auth.oauth', { provider })}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {message && (
+        <p
+          role={message.kind === 'error' ? 'alert' : 'status'}
+          className={`mt-4 text-[13px] ${message.kind === 'error' ? 'text-danger' : message.kind === 'ok' ? 'text-sage-text' : 'text-muted'}`}
+        >
+          {message.text}
+        </p>
       )}
       {adapter.target === 'nezha' && <p className="mt-5 text-[12px] leading-relaxed text-muted">{t('auth.wafHint')}</p>}
     </div>
