@@ -1,13 +1,16 @@
 # Changelog
 
+## 1.1.3 — 2026-10-27
+
+- **Rate spark.** Samples are joined into one line, drawn at the card's own width, so a slow report no longer shows up as separate ticks and diamonds.
+- **Footer.** “@luoleiorg 出品的主题” is centered.
+- **Install.** This is a new version. Nezha keeps an already installed tag, so 1.1.2 could not be replaced in place.
+
 ## 1.1.2 — 2026-10-27
 
 - **Online time.** Detail, network, and online are one switch. Online time is the third choice: rate, totals, last active, a 24-hour bar for each day, and online or offline periods. Live updates no longer add another copy.
 - **Latency comparison.** The chart shows every monitor until a name is clicked. Further clicks add those monitors to the comparison; clearing the last one shows all of them again.
 - **Size.** The entry-script gate is 129 KB gzipped, to hold the online-time panel.
-- **Rate spark.** Samples are joined into one line, drawn at the card's own width, so a slow report no longer shows up as separate ticks and diamonds.
-- **Footer.** “@luoleiorg 出品的主题” is centered.
-- **Same release.** Fixes after 1.1.2 replace this tag's `dist.zip` instead of adding another version for Nezha to download.
 
 ## 1.1.1 — 2026-10-27
 
