@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type CSSProperties } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { formatPercent } from '@/core/format'
 import type { Bucket } from '@/core/live'
 import { fitCells, focusPoints } from '@/core/live'
@@ -13,7 +13,8 @@ import { fitCells, focusPoints } from '@/core/live'
  *   run    → history of a state (reported / silent)
  *   notch  → a threshold, drawn on top of whichever instrument it belongs to
  *
- * All of them are plain SVG/CSS, sized in pixels, with no observers and no chart library.
+ * All of them are plain SVG/CSS, sized in pixels, with no chart library. The stretched
+ * spark measures its box once so a 1px stroke is not scaled into a wedge.
  */
 
 export type Level = 'good' | 'warn' | 'danger'
@@ -237,32 +238,17 @@ export function BlockGrid({
 function seriesPath(buckets: readonly Bucket[], max: number, width: number, half: number, down: boolean) {
   if (!buckets.length || max <= 0) return { line: '', area: '' }
   const step = width / Math.max(1, buckets.length - 1)
-  const y = (v: number) => (down ? half + (v / max) * (half - 1) : half - (v / max) * (half - 1))
-  let line = ''
-  let area = ''
-  let open = false
-  let startX = 0
-  let lastX = 0
-  buckets.forEach((b, i) => {
-    const x = i * step
-    if (b.value === null) {
-      if (open) area += `L${lastX.toFixed(1)},${half}L${startX.toFixed(1)},${half}Z`
-      open = false
-      return
-    }
-    const py = y(b.value).toFixed(1)
-    if (!open) {
-      line += `M${x.toFixed(1)},${py}`
-      area += `M${x.toFixed(1)},${py}`
-      startX = x
-      open = true
-    } else {
-      line += `L${x.toFixed(1)},${py}`
-      area += `L${x.toFixed(1)},${py}`
-    }
-    lastX = x
-  })
-  if (open) area += `L${lastX.toFixed(1)},${half}L${startX.toFixed(1)},${half}Z`
+  const yOf = (v: number) => (down ? half + (v / max) * (half - 1) : half - (v / max) * (half - 1))
+  // A bucket with no sample is a missed report, not a hole to jump. Connecting the samples
+  // that did arrive keeps a slow agent from drawing as separate ticks and diamonds.
+  const points = buckets.flatMap((bucket, index) => (bucket.value === null ? [] : [{ x: index * step, y: yOf(bucket.value) }]))
+  if (!points.length) return { line: '', area: '' }
+  const fmt = (n: number) => n.toFixed(1)
+  let line = `M${fmt(points[0].x)},${fmt(points[0].y)}`
+  for (let i = 1; i < points.length; i++) line += `L${fmt(points[i].x)},${fmt(points[i].y)}`
+  const first = points[0]
+  const last = points[points.length - 1]
+  const area = `${line}L${fmt(last.x)},${fmt(half)}L${fmt(first.x)},${fmt(half)}Z`
   return { line, area }
 }
 
@@ -295,58 +281,75 @@ export function MirrorSpark({
   className?: string
   independentScales?: boolean
   /**
-   * Fill the parent's width. The shape is drawn in `width` units and stretched horizontally;
-   * strokes keep their 1px weight and the end dots stay round, because both are drawn with
-   * non-scaling strokes rather than filled circles.
+   * Fill the parent's width. The path is drawn in the measured pixel width, so a 1px stroke
+   * stays a 1px stroke instead of being stretched into a wedge.
    */
   stretch?: boolean
 }) {
   const id = useId().replace(/:/g, '')
+  const host = useRef<HTMLSpanElement>(null)
+  // Stretch used to scale an 88px drawing across the card. A vertical spike then became a
+  // wedge or a diamond. Draw in the box's own pixels instead, so the stroke stays 1px.
+  const [measured, setMeasured] = useState(0)
+  useLayoutEffect(() => {
+    if (!stretch) return
+    const node = host.current
+    if (!node) return
+    const apply = () => {
+      const next = Math.max(1, Math.round(node.clientWidth))
+      setMeasured((prev) => (prev === next ? prev : next))
+    }
+    apply()
+    const observer = new ResizeObserver(apply)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [stretch])
+  const drawWidth = stretch ? measured : width
   const half = height / 2
   const upFocus = focusPoints(up)
   const downFocus = focusPoints(down)
   const shared = Math.max(upFocus.peak, downFocus.peak, 1)
   const upMax = independentScales ? Math.max(upFocus.peak, 1) : shared
   const downMax = independentScales ? Math.max(downFocus.peak, 1) : shared
-  const u = seriesPath(up, upMax, width, half, false)
-  const d = seriesPath(down, downMax, width, half, true)
+  const u = drawWidth > 0 ? seriesPath(up, upMax, drawWidth, half, false) : { line: '', area: '' }
+  const d = drawWidth > 0 ? seriesPath(down, downMax, drawWidth, half, true) : { line: '', area: '' }
   // The buffer fills from page load; until there is a shape to show, stay blank rather than
   // drawing a lone baseline that reads as a stray rule.
   const warming = upFocus.lastIndex < 0 && downFocus.lastIndex < 0
-  const step = width / Math.max(1, up.length - 1)
+  const step = drawWidth / Math.max(1, up.length - 1)
   const dot = (buckets: readonly Bucket[], focus: ReturnType<typeof focusPoints>, max: number, isDown: boolean) => {
-    if (focus.lastIndex < 0) return null
+    if (focus.lastIndex < 0 || drawWidth <= 0) return null
     const value = buckets[focus.lastIndex].value ?? 0
     const cy = isDown ? half + (value / max) * (half - 1) : half - (value / max) * (half - 1)
-    const cx = (focus.lastIndex * step).toFixed(1)
-    // A zero-length line with a round cap is a dot that survives a horizontal stretch.
-    return stretch ? (
-      <line x1={cx} x2={cx} y1={cy.toFixed(1)} y2={cy.toFixed(1)} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeWidth={3.2} style={{ stroke: 'var(--ink)' }} />
-    ) : (
-      <circle cx={cx} cy={cy.toFixed(1)} r={1.6} style={{ fill: 'var(--ink)' }} />
-    )
+    return <circle cx={(focus.lastIndex * step).toFixed(1)} cy={cy.toFixed(1)} r={1.6} style={{ fill: 'var(--ink)' }} />
   }
-  const nonScaling = stretch ? 'non-scaling-stroke' : undefined
 
-  return (
+  const svg = drawWidth > 0 && (
     <svg
       width={stretch ? '100%' : width}
       height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio={stretch ? 'none' : undefined}
-      className={`block overflow-visible ${className}`}
+      viewBox={`0 0 ${drawWidth} ${height}`}
+      className="block overflow-visible"
       data-instrument="spark"
       role="img"
       aria-label={label}
     >
-      {!warming && <line x1="0" x2={width} y1={half} y2={half} vectorEffect={nonScaling} style={{ stroke: 'var(--line)' }} shapeRendering="crispEdges" />}
+      {!warming && <line x1="0" x2={drawWidth} y1={half} y2={half} style={{ stroke: 'var(--line)' }} shapeRendering="crispEdges" />}
       <path d={u.area} style={{ fill: 'var(--ink)', fillOpacity: 0.08 }} />
       <path d={d.area} style={{ fill: 'var(--ink)', fillOpacity: 0.05 }} />
-      <path d={u.line} fill="none" vectorEffect={nonScaling} style={{ stroke: 'var(--ink)' }} strokeWidth={1} strokeLinejoin="round" id={`${id}-u`} />
-      <path d={d.line} fill="none" vectorEffect={nonScaling} style={{ stroke: 'var(--muted)' }} strokeWidth={1} strokeLinejoin="round" />
+      <path d={u.line} fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth={1} strokeLinejoin="round" strokeLinecap="round" id={`${id}-u`} />
+      <path d={d.line} fill="none" style={{ stroke: 'var(--muted)' }} strokeWidth={1} strokeLinejoin="round" strokeLinecap="round" />
       {dot(up, upFocus, upMax, false)}
       {dot(down, downFocus, downMax, true)}
     </svg>
+  )
+
+  if (!stretch) return svg
+
+  return (
+    <span ref={host} className={`block w-full ${className}`} style={{ height }}>
+      {svg}
+    </span>
   )
 }
 

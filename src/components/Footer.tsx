@@ -8,8 +8,8 @@ export function Footer() {
 
   return (
     <footer className="mt-24 border-t border-line">
-      <div className="wrap flex flex-col gap-4 pt-10 pb-8 md:flex-row md:items-center md:justify-end">
-        {note && <p className="mr-auto text-[13px] text-ink">{note}</p>}
+      <div className="wrap flex flex-col items-center gap-3 pt-10 pb-8 text-center">
+        {note && <p className="max-w-[70ch] text-[13px] text-ink">{note}</p>}
         <p className="text-[12px] text-muted">
           <Trans
             i18nKey="app.productBy"

@@ -17,7 +17,8 @@ export interface Bucket {
 
 /**
  * Splits `[from, to]` into `count` equal buckets and averages each one. Buckets without a
- * sample stay `null` — that is what makes a gap visible instead of interpolated away.
+ * sample stay `null`. The status run reads that as silence. The rate spark joins the
+ * samples on either side, so a slow report stays one line.
  */
 export function bucketSeries(
   points: readonly HistoryPoint[],

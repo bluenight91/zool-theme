@@ -76,13 +76,12 @@ carry both peaks.
 
 - Up to 15 minutes of the live ring buffer, bucketed to 24 points (`recentBuckets`). The window
   stretches to the history that exists, so a freshly opened page still shows a shape.
-- Empty buckets break the path instead of interpolating across a gap.
+- A bucket with no sample is skipped and the neighbouring samples stay joined, so a report
+  that arrives slower than the bucket width still draws one line.
 - One filled dot marks the current value on each half. The peak is reported as text, not as
   a second dot, to keep the strip calm at ledger density.
-- `stretch` makes `MirrorSpark` fill its parent's width with `width="100%"` and
-  `preserveAspectRatio="none"`. Paths are drawn in `width` units, then stretched horizontally;
-  non-scaling strokes keep the lines 1px thick. End dots use zero-length round-capped lines
-  so they stay round as the column widens.
+- `stretch` makes `MirrorSpark` fill its parent's width. The path is drawn in that measured
+  pixel width, so the stroke stays 1px instead of being stretched into a wedge.
 - Cards place the rate label above a 32px-high spark stretched across the full content width.
   Upload and download rates sit side by side in equal columns on one 24px-high row, using the
   same 20px type as the CPU / memory / disk readings (18px on narrow cards). Traffic follows
