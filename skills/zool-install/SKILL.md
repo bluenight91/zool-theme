@@ -28,7 +28,7 @@ Fetch release metadata once. Do not use unbounded retries. Resolve the asset URL
 
 ```bash
 set -euo pipefail
-curl -fsSL 'https://api.github.com/repos/foru17/zool-theme/releases/latest' -o release.json
+curl -fsSL 'https://api.github.com/repos/bluenight91/zool-theme/releases/latest' -o release.json
 tag=$(jq -er '.tag_name' release.json)
 jq -er '
   [.assets[] | select(.name == "dist.zip")]
@@ -53,7 +53,7 @@ Reject the zip unless every listing entry is `dist` or starts with `dist/`, none
 Tell the user to do this in the admin panel, and wait until they confirm each step:
 
 1. **设置 → 前端管理 → 用户前端**
-2. Repository: `https://github.com/foru17/zool-theme`
+2. Repository: `https://github.com/bluenight91/zool-theme`
 3. Install tag `$tag` (the asset is `dist.zip`)
 4. **启用** that version
 

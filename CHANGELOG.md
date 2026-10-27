@@ -5,7 +5,7 @@
 ZOOL is a Nezha theme, installed from the dashboard.
 
 - **Nezha only.** The Komari adapter, theme manifest and install path are gone.
-- **Admin install.** A `v*` tag publishes one asset, `dist.zip`, with `dist/index.html` inside. **设置 → 前端管理 → 用户前端** can install `https://github.com/foru17/zool-theme` from that release. Draft releases are not published, because Nezha skips them.
+- **Admin install.** A `v*` tag publishes one asset, `dist.zip`, with `dist/index.html` inside. **设置 → 前端管理 → 用户前端** can install `https://github.com/bluenight91/zool-theme` from that release. Draft releases are not published, because Nezha skips them.
 - **Custom code.** The user-frontend custom code box runs before settings are read. `window.ZoolConfig.siteTitle` sets the panel name. `window.CustomLogo`, `window.CustomDesc`, `window.ForceTheme`, `window.DisableAnimatedMan` and `window.ShowNetTransfer` cover the logo, the home-page line, appearance, the footer wordmark and cumulative transfer. `"true"` and `"false"` count. The footer wordmark is `[data-zool="wordmark"]`.
 
 ## 1.0.0 — 2026-09-17

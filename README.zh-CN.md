@@ -37,7 +37,7 @@
 
 ```text
 在 https://<host> 的哪吒面板上安装 ZOOL 主题。
-按照 https://raw.githubusercontent.com/foru17/zool-theme/main/skills/zool-install/SKILL.md 执行：
+按照 https://raw.githubusercontent.com/bluenight91/zool-theme/main/skills/zool-install/SKILL.md 执行：
 确认面板、校验最新的 dist.zip、在「设置 → 前端管理」安装、验证，并告诉我如何切回原来的前端。
 ```
 
@@ -46,7 +46,7 @@
 
 ## 手动安装
 
-打开 **设置 → 前端管理 → 用户前端**，填入 `https://github.com/foru17/zool-theme`，安装一个版本后点启用。发布附件的名字是 `dist.zip`。配置、自定义代码和切回原来的前端见 [docs/install-nezha.md](docs/install-nezha.md)。
+打开 **设置 → 前端管理 → 用户前端**，填入 `https://github.com/bluenight91/zool-theme`，安装一个版本后点启用。发布附件的名字是 `dist.zip`。配置、自定义代码和切回原来的前端见 [docs/install-nezha.md](docs/install-nezha.md)。
 
 ## 你会得到
 

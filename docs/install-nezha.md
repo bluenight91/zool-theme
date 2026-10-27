@@ -7,7 +7,7 @@ Nezha only serves this frontend for `/` and `/server/:id`, which is what the the
 ## From the admin panel
 
 1. Open **设置 → 前端管理** and choose **用户前端**.
-2. Enter the repository `https://github.com/foru17/zool-theme`.
+2. Enter the repository `https://github.com/bluenight91/zool-theme`.
 3. Install a release. The release must be public, not a draft, and must contain an asset named exactly `dist.zip`. Inside that zip every file lives under `dist/`, including a nonempty `dist/index.html`.
 4. Click **启用**. The next request uses ZOOL. No panel restart.
 
@@ -85,6 +85,6 @@ after repeated failures; the dialog says so.
 
 ## If the panel cannot reach GitHub
 
-Download `dist.zip` from the [releases page](https://github.com/foru17/zool-theme/releases/latest) and unzip it so `index.html` lands in the template directory the dashboard is serving (often `user-dist` in the dashboard's working directory). That directory is the *contents* of `dist/`, not a folder named `dist` beside the binary. Restart only if the process does not already read that directory from disk.
+Download `dist.zip` from the [releases page](https://github.com/bluenight91/zool-theme/releases/latest) and unzip it so `index.html` lands in the template directory the dashboard is serving (often `user-dist` in the dashboard's working directory). That directory is the *contents* of `dist/`, not a folder named `dist` beside the binary. Restart only if the process does not already read that directory from disk.
 
 When copying an upgrade over an existing directory, leave the previous `assets/` files in place. `index.html` is served without `Cache-Control`, so a browser may still hold the previous HTML; if its hashed files are gone, the page stays blank.

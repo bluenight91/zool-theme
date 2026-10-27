@@ -37,7 +37,7 @@ Give this to Claude Code, Codex or any coding agent that can reach your server:
 
 ```text
 Install the ZOOL theme on my Nezha panel at https://<host>.
-Follow https://raw.githubusercontent.com/foru17/zool-theme/main/skills/zool-install/SKILL.md:
+Follow https://raw.githubusercontent.com/bluenight91/zool-theme/main/skills/zool-install/SKILL.md:
 confirm the panel, verify the latest dist.zip, install it from 设置 → 前端管理, verify, and tell me how to switch back.
 ```
 
@@ -46,7 +46,7 @@ around, copy [`skills/zool-install`](skills/zool-install) into `~/.claude/skills
 
 ## Install by hand
 
-In **设置 → 前端管理 → 用户前端**, enter `https://github.com/foru17/zool-theme`, install a release, then enable it. The release asset is `dist.zip`. Options, custom code and rollback: [docs/install-nezha.md](docs/install-nezha.md).
+In **设置 → 前端管理 → 用户前端**, enter `https://github.com/bluenight91/zool-theme`, install a release, then enable it. The release asset is `dist.zip`. Options, custom code and rollback: [docs/install-nezha.md](docs/install-nezha.md).
 
 ## What you get
 

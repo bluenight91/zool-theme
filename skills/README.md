@@ -9,4 +9,4 @@ use, or into your project's `.claude/skills/` directory. Then invoke `/zool-inst
 or ask the agent to install, upgrade or roll back the ZOOL theme.
 
 Alternatively, ask your agent to read and follow the
-[raw installation skill](https://raw.githubusercontent.com/foru17/zool-theme/main/skills/zool-install/SKILL.md).
+[raw installation skill](https://raw.githubusercontent.com/bluenight91/zool-theme/main/skills/zool-install/SKILL.md).
