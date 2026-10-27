@@ -10,6 +10,7 @@ import { summariseDay } from '@/core/summary'
 import { Chart, type ChartSeries } from '@/components/Chart'
 import { HourGrid } from '@/components/HourGrid'
 import { OnlineHistory } from '@/components/OnlineHistory'
+import { togglePing } from '@/core/ping'
 import { BlockGrid, levelFor, MirrorSpark, TickBar } from '@/components/instruments'
 import { coreTicks, liveSpanMinutes, memoryBlocks, recentBuckets } from '@/core/live'
 import { Popover } from '@/components/Popover'
@@ -150,7 +151,7 @@ function useDaySummary(id: string, snap: Snapshot | undefined) {
 
 /* ---------- charts ---------- */
 
-type Tab = 'load' | 'ping'
+type Tab = 'detail' | 'network' | 'online'
 
 function useTimeFormats(hours: number) {
   const { i18n } = useTranslation()
@@ -239,48 +240,59 @@ const PING_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(
 function PingChart({ data, hours }: { data: PingData; hours: number }) {
   const { t } = useTranslation()
   const fmt = useTimeFormats(hours)
-  const [hidden, setHidden] = useState<Set<number>>(new Set())
-  const series: ChartSeries[] = data.tasks
-    .filter((task) => !hidden.has(task.id))
-    .map((task) => ({
-      key: String(task.id),
-      label: task.name,
-      color: PING_COLORS[data.tasks.indexOf(task) % PING_COLORS.length],
-      points: data.points.filter((p) => p.task === task.id).map((p) => ({ t: p.at, v: p.value >= 0 ? p.value : null })),
-    }))
+  const [picked, setPicked] = useState<number[]>([])
+  const visible = picked.length === 0 ? data.tasks : data.tasks.filter((task) => picked.includes(task.id))
+  const series: ChartSeries[] = visible.map((task) => ({
+    key: String(task.id),
+    label: task.name,
+    color: PING_COLORS[data.tasks.indexOf(task) % PING_COLORS.length],
+    points: data.points.filter((p) => p.task === task.id).map((p) => ({ t: p.at, v: p.value >= 0 ? p.value : null })),
+  }))
 
   return (
     <div className="card p-5">
+      <div className="mb-3 flex items-center justify-end">
+        {picked.length > 0 && (
+          <button type="button" className="text-[12px] text-muted underline-offset-4 hover:text-ink hover:underline" onClick={() => setPicked([])}>
+            {t('node.showAllMonitors')}
+          </button>
+        )}
+      </div>
       <Chart series={series} height={240} format={(v) => `${formatNumber(v, 0)} ms`} formatTime={fmt.axis} formatTooltipTime={fmt.tooltip} label={t('node.tabPing')} />
       <ul className="mt-5 divide-y divide-line border-t border-line">
-        {data.tasks.map((task, i) => (
-          <li key={task.id}>
-            <button
-              type="button"
-              aria-pressed={!hidden.has(task.id)}
-              onClick={() => setHidden((h) => (h.has(task.id) ? new Set([...h].filter((x) => x !== task.id)) : new Set([...h, task.id])))}
-              className={`grid w-full grid-cols-[1fr_auto] items-center gap-4 py-3 text-left text-[13px] sm:grid-cols-[minmax(0,1fr)_repeat(4,72px)] ${hidden.has(task.id) ? 'opacity-40' : ''}`}
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <span className="h-[2px] w-4 shrink-0 rounded-full" style={{ background: PING_COLORS[i % PING_COLORS.length] }} />
-                <span className="truncate" title={task.name}>{task.name}</span>
-              </span>
-              <span className="num text-right">
-                <span className="text-muted sm:hidden">{t('node.avg')} </span>
-                {formatNumber(task.avg, 1)} ms
-              </span>
-              <span className="num hidden text-right text-muted sm:block">
-                {t('node.min')} {formatNumber(task.min, 0)}
-              </span>
-              <span className="num hidden text-right text-muted sm:block">
-                {t('node.max')} {formatNumber(task.max, 0)}
-              </span>
-              <span className={`num hidden text-right sm:block ${task.loss > 5 ? 'text-danger' : 'text-muted'}`}>
-                {t('node.loss')} {formatNumber(task.loss, 1)}%
-              </span>
-            </button>
-          </li>
-        ))}
+        {data.tasks.map((task, i) => {
+          const on = picked.length === 0 || picked.includes(task.id)
+          return (
+            <li key={task.id}>
+              <button
+                type="button"
+                aria-pressed={picked.includes(task.id)}
+                onClick={() => setPicked((current) => togglePing(current, task.id))}
+                className={`grid w-full grid-cols-[1fr_auto] items-center gap-4 py-3 text-left text-[13px] sm:grid-cols-[minmax(0,1fr)_repeat(4,72px)] ${on ? '' : 'opacity-40'}`}
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="h-[3px] w-4 shrink-0 rounded-full" style={{ background: PING_COLORS[i % PING_COLORS.length] }} />
+                  <span className="truncate" title={task.name}>
+                    {task.name}
+                  </span>
+                </span>
+                <span className="num text-right">
+                  <span className="text-muted sm:hidden">{t('node.avg')} </span>
+                  {formatNumber(task.avg, 1)} ms
+                </span>
+                <span className="num hidden text-right text-muted sm:block">
+                  {t('node.min')} {formatNumber(task.min, 0)}
+                </span>
+                <span className="num hidden text-right text-muted sm:block">
+                  {t('node.max')} {formatNumber(task.max, 0)}
+                </span>
+                <span className={`num hidden text-right sm:block ${task.loss > 5 ? 'text-danger' : 'text-muted'}`}>
+                  {t('node.loss')} {formatNumber(task.loss, 1)}%
+                </span>
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )
@@ -296,7 +308,12 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   const ranges = adapter.historyRanges.filter((h) => h === 0 || h <= Math.max(recordHours, 1))
   const pingRanges = adapter.pingRanges ?? ranges.filter((h) => h > 0)
   const rangeLocked = (h: number) => adapter.guestRangeHours != null && !loggedIn && h > adapter.guestRangeHours
-  const [tab, setTab] = useState<Tab>('load')
+  const [tab, setTab] = useState<Tab>('detail')
+  const viewTabs = (['detail', 'network', 'online'] as const).filter((item) => {
+    if (item === 'network') return adapter.capabilities.ping
+    if (item === 'online') return Boolean(adapter.loadOnlineHistory)
+    return true
+  })
   const [pingRange, setPingRange] = useState(pingRanges.includes(24) ? 24 : (pingRanges[0] ?? 24))
   useEffect(() => {
     if (rangeLocked(pingRange)) setPingRange(adapter.guestRangeHours ?? 24)
@@ -310,7 +327,7 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   const pingKey = `${node.id}:${pingRange}:${nonce}`
 
   useEffect(() => {
-    if (tab !== 'load' || range === 0) return
+    if (tab !== 'detail' || range === 0) return
     let cancelled = false
     setError(false)
     adapter
@@ -323,7 +340,7 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   }, [tab, range, node.id, historyKey])
 
   useEffect(() => {
-    if (tab !== 'ping' || !adapter.capabilities.ping) return
+    if (tab !== 'network' || !adapter.capabilities.ping) return
     let cancelled = false
     setError(false)
     adapter
@@ -340,30 +357,39 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
   const points = range === 0 ? live : history?.key === historyKey ? history.points : null
   const pingData = ping?.key === pingKey ? ping.data : null
   const rangeLabel = (h: number) => (h === 0 ? t('node.rangeLive') : h < 24 ? t('node.rangeHours', { count: h }) : t('node.rangeDays', { count: h / 24 }))
-  const activeRanges = tab === 'load' ? ranges : pingRanges
-  const activeRange = tab === 'load' ? range : pingRange
+  const activeRanges = tab === 'network' ? pingRanges : ranges
+  const activeRange = tab === 'network' ? pingRange : range
+  const tabLabel = { detail: t('node.tabDetail'), network: t('node.tabNetwork'), online: t('node.tabOnline') }
 
   return (
     <section className="mt-16">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="mr-auto text-[24px] font-light tracking-[-0.02em]">{t('node.charts')}</h2>
-        {adapter.capabilities.ping && (
-          <div className="flex rounded-full border border-line p-0.5" role="tablist">
-            {(['load', 'ping'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                role="tab"
-                aria-selected={tab === k}
-                onClick={() => setTab(k)}
-                className={`h-8 rounded-full px-4 text-[13px] transition-colors ${tab === k ? 'bg-ink text-paper' : 'text-muted hover:text-ink'}`}
-              >
-                {t(k === 'load' ? 'node.tabLoad' : 'node.tabPing')}
-              </button>
-            ))}
+        {viewTabs.length > 1 ? (
+          <div className="flex w-full items-center gap-4">
+            <span className="h-px flex-1 bg-line" aria-hidden />
+            <div className="flex rounded-full border border-line p-0.5" role="tablist" aria-label={t('node.charts')}>
+              {viewTabs.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === item}
+                  onClick={() => {
+                    setError(false)
+                    setTab(item)
+                  }}
+                  className={`h-8 rounded-full px-4 text-[13px] transition-colors ${tab === item ? 'bg-ink text-paper' : 'text-muted hover:text-ink'}`}
+                >
+                  {tabLabel[item]}
+                </button>
+              ))}
+            </div>
+            <span className="h-px flex-1 bg-line" aria-hidden />
           </div>
+        ) : (
+          <h2 className="mr-auto text-[24px] font-light tracking-[-0.02em]">{t('node.charts')}</h2>
         )}
-        {activeRanges.length > 1 && (
+        {tab !== 'online' && activeRanges.length > 1 && (
           <div className="scroll-x flex gap-0.5" role="group">
             {activeRanges.map((h) => {
               const locked = rangeLocked(h)
@@ -375,7 +401,7 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
                   aria-pressed={activeRange === h}
                   disabled={locked}
                   title={locked ? t('node.memberRange') : undefined}
-                  onClick={() => (tab === 'load' ? setRange(h) : setPingRange(h))}
+                  onClick={() => (tab === 'network' ? setPingRange(h) : setRange(h))}
                 >
                   {rangeLabel(h)}
                 </button>
@@ -383,19 +409,21 @@ function NodeCharts({ node, snap }: { node: NodeInfo; snap?: Snapshot }) {
             })}
           </div>
         )}
-        {((tab === 'load' && range > 0) || tab === 'ping') && (
+        {tab !== 'online' && ((tab === 'detail' && range > 0) || tab === 'network') && (
           <button type="button" className="icon-btn" aria-label={t('node.refresh')} title={t('node.refresh')} onClick={() => setNonce((n) => n + 1)}>
             <RefreshCw size={16} strokeWidth={1.6} />
           </button>
         )}
       </div>
 
-      {tab === 'load' && range === 0 && !adapter.capabilities.history && <p className="mt-3 text-[13px] text-muted">{t('node.liveOnly')}</p>}
+      {tab === 'detail' && range === 0 && !adapter.capabilities.history && <p className="mt-3 text-[13px] text-muted">{t('node.liveOnly')}</p>}
 
       <div className="mt-5">
-        {error ? (
+        {tab === 'online' ? (
+          <OnlineHistory serverId={node.id} />
+        ) : error ? (
           <p className="rounded-[20px] border border-dashed border-line py-16 text-center text-[14px] text-muted">{t('app.loadError')}</p>
-        ) : tab === 'load' ? (
+        ) : tab === 'detail' ? (
           points === null ? (
             <ChartSkeleton />
           ) : points.length < 2 && range > 0 ? (
@@ -444,6 +472,7 @@ export function NodePage({ id }: { id: string }) {
   const day = useDaySummary(nodeId, snap)
   const week = useWeekHistory(nodeId)
   const liveTick = useStore((s) => s.liveVersion)
+  const fed = useStore((s) => s.fed)
   const cores = coreTicks(snap?.cpu ?? 0, node?.cpuCores ?? 0)
   const mem = memoryBlocks(snap?.memUsed ?? 0, snap?.memTotal || node?.memTotal || 0, node?.swapTotal ?? 0)
   const tickGap = cores.ticks > 16 ? 2 : 4
@@ -479,7 +508,6 @@ export function NodePage({ id }: { id: string }) {
 
   const online = Boolean(snap?.online)
   // Before the first live frame the node is waiting, not down.
-  const fed = useStore((s) => s.fed)
   const pending = !snap && !fed
   const memTotal = snap?.memTotal || node.memTotal
   const diskTotal = snap?.diskTotal || node.diskTotal
@@ -705,11 +733,9 @@ export function NodePage({ id }: { id: string }) {
         </div>
       )}
 
-      <OnlineHistory key={node.id} serverId={node.id} />
-
       {node.note && <p className="mt-10 max-w-[70ch] text-[14px] leading-relaxed whitespace-pre-line text-muted">{node.note}</p>}
 
-      <NodeCharts key={node.id} node={node} snap={snap} />
+      <NodeCharts key={`charts-${node.id}`} node={node} snap={snap} />
     </div>
   )
 }

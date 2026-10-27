@@ -138,23 +138,58 @@ export interface PingData {
   points: PingPoint[]
 }
 
+/** A slice of a calendar day, as fractions from 0 to 1. */
+export interface DaySpan {
+  from: number
+  to: number
+}
+
 /** One calendar day of uptime, in the dashboard's timezone. */
 export interface OnlineDay {
   /** `YYYY-MM-DD` in the dashboard timezone. */
   date: string
   onlineSeconds: number
-  /** Online stretches as fractions of that day, from 0 to 1. */
-  segments: { from: number; to: number }[]
+  /** Online stretches inside the statistics window. */
+  online: DaySpan[]
+  /** The part of the day the query window does not cover. */
+  excluded: DaySpan[]
+  /** Hours that have not happened yet. */
+  pending: DaySpan[]
+  /** Where the statistics stop inside this day, if they do. */
+  cutoff: number | null
+}
+
+export interface OnlinePeriod {
+  start: number
+  end: number
+  ongoing: boolean
 }
 
 export interface OnlineHistory {
   maxDays: number
   timeZone: string
+  windowStart: number
+  windowEnd: number
   onlineSeconds: number
   offlineSeconds: number
   /** 0–100. */
   onlineRate: number
+  currentlyOnline: boolean
+  lastActive: number | null
+  periods: OnlinePeriod[]
   daily: OnlineDay[]
+}
+
+/** One chip after a period has been cut at midnight. */
+export interface PeriodChip {
+  start: number
+  end: number
+  ongoing: boolean
+}
+
+export interface PeriodGroup {
+  date: string
+  chips: PeriodChip[]
 }
 
 export interface Session {

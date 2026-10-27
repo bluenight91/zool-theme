@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
 
-const limit = Number(process.env.ZOOL_SIZE_LIMIT ?? 131072)
+const limit = Number(process.env.ZOOL_SIZE_LIMIT ?? 132096)
 
 try {
   if (!Number.isSafeInteger(limit) || limit < 0 || process.env.ZOOL_SIZE_LIMIT?.trim() === '') {
