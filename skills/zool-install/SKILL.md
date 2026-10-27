@@ -1,226 +1,103 @@
 ---
 name: zool-install
-description: Install, upgrade or roll back the ZOOL theme on a Komari or Nezha status panel. Use when asked to install zool / ZOOL theme on Komari or Nezha.
+description: Install, upgrade or roll back the ZOOL theme on a Nezha status panel from 设置 → 前端管理. Use when asked to install zool / ZOOL theme on Nezha.
 ---
 
 # ZOOL theme installation
 
-Install the latest ZOOL release unless the user requests a specific version. Replace angle-bracket
-placeholders with confirmed values before running commands. Stop on any failed step.
+Install the latest ZOOL release on a Nezha dashboard that can install user frontends from a public Git repository. Replace angle-bracket placeholders with confirmed values before running commands. Stop on any failed step.
 
 ## Before you start
 
-- Confirm the panel URL, requested action/version and access method with the user first.
-  Komari needs an administrator session/account or server shell; Nezha needs server
-  shell and the Docker Compose directory. Reuse authorized access; never guess
-  credentials or request unnecessary secrets.
-- Resolve `<data>` from the actual Komari data mount (the directory containing
-  `komari.db` and `theme/`), and `<compose>` from the existing Nezha deployment.
-  Record the current theme, installed version and relevant mounts before changes.
-- Confirm with the user before destructive actions, including deleting directories,
-  modifying/restoring a database, or restarting/recreating containers. Explain the
-  exact action and impact; `docker compose up -d` may recreate containers.
-  Never run `rm -rf` on an old theme directory.
-- Use a fresh download/staging directory and a separate backup directory. Shell steps
-  require curl, jq, unzip, tar and sha256sum; Komari database backups also need sqlite3.
-  With admin-only access, have the server operator perform required backups before
-  proceeding; report missing access instead of bypassing backups.
+- Confirm the panel URL and the requested version with the user first. Reuse authorized access; never guess credentials or request unnecessary secrets.
+- The install itself happens in **设置 → 前端管理 → 用户前端**. Do not mount a directory over the dashboard or edit `user_template` by hand when that page is available.
+- Confirm with the user before enabling a frontend or switching away from the one visitors are using. Say which release will be enabled and that the previous choice can be turned back on from the same page.
+- Checking the release needs curl, jq and sha256sum. Inspecting the zip also needs unzip.
 
 ## Detect
 
 ```bash
-curl -s 'https://<host>/api/public'
 curl -s 'https://<host>/api/v1/setting'
 ```
 
-Parse responses as JSON: `/api/public` containing a `theme` field (normally
-`.data.theme`) identifies Komari; `/api/v1/setting` returning `success: true`
-identifies Nezha. HTML, errors or ambiguous responses are not positive detection.
-Record the panel version from its admin UI or deployment metadata: require
-Komari >= 1.4 or Nezha dashboard v1. Do not infer the version from detection alone.
+A JSON body with `success: true` identifies Nezha. HTML, errors or any other shape is not a positive detection. Stop if it is not Nezha. The dashboard must include **设置 → 前端管理**; an older panel that only has a template dropdown cannot install `dist.zip`.
 
-## Download
+## Download and verify
 
-In the fresh download directory, run this in Bash, setting `panel` to the detected
-`komari` or `nezha`. Fetch release metadata once and download exactly two assets;
-do not use unbounded retries. Resolve URLs from the API, not guessed release paths.
-If the API answers 403 with "rate limit exceeded" (60 anonymous requests an hour, often
-shared behind a NAT or proxy), repeat the metadata request once with
-`-H "Authorization: Bearer $GITHUB_TOKEN"` when a token is available; otherwise report
-the limit and its reset time to the user instead of retrying.
+Fetch release metadata once. Do not use unbounded retries. Resolve the asset URL from the API. If the API answers 403 with "rate limit exceeded", repeat the metadata request once with `-H "Authorization: Bearer $GITHUB_TOKEN"` when a token is available; otherwise report the limit and its reset time.
 
 ```bash
 set -euo pipefail
-panel=komari
-curl -fsSL 'https://api.github.com/repos/foru17/zool-theme/releases/latest' -o release.json
-asset=$(jq -er --arg p "$panel" '
-  [.assets[] | select(.name | test("^zool-" + $p + "-v[0-9]+\\.[0-9]+\\.[0-9]+\\.zip$"))]
-  | if length == 1 then .[0].name else error("Expected one matching theme zip") end
-' release.json)
-zip_url=$(jq -er --arg n "$asset" '.assets[] | select(.name == $n) | .browser_download_url' release.json)
-sums_url=$(jq -er '
-  [.assets[] | select(.name == "SHA256SUMS")]
-  | if length == 1 then .[0].browser_download_url else error("Missing or ambiguous SHA256SUMS") end
-' release.json)
-printf 'Release: %s; asset: %s\n' "$(jq -r .tag_name release.json)" "$asset"
+curl -fsSL 'https://api.github.com/repos/bluenight91/zool-theme/releases/latest' -o release.json
+tag=$(jq -er '.tag_name' release.json)
+jq -er '
+  [.assets[] | select(.name == "dist.zip")]
+  | if length == 1 then .[0] else error("Expected exactly one dist.zip asset") end
+  | {url: .browser_download_url, digest: .digest, draft: .draft}
+' release.json > asset.json
 ```
 
-Check that the release tag and asset version match the requested version before
-continuing. If the user requested a version and latest is a different one, stop and report the
-mismatch; do not silently install a different release. Expected names are
-`zool-komari-v<version>.zip` and `zool-nezha-v<version>.zip`.
+Stop if `draft` is true, if `digest` is missing or not `sha256:` plus 64 hex characters, or if the user asked for a different tag than `$tag`.
 
 ```bash
-curl -fL "$zip_url" -o "$asset"
-curl -fL "$sums_url" -o SHA256SUMS
+url=$(jq -er .url asset.json)
+curl -fL "$url" -o dist.zip
+jq -er '.digest | sub("^sha256:"; "")' asset.json | awk '{ print $0 "  dist.zip" }' | sha256sum -c
+unzip -Z1 dist.zip > listing.txt
 ```
 
-## Verify checksum
+Reject the zip unless every listing entry is `dist` or starts with `dist/`, none contain `..`, and `dist/index.html` is present. `unzip -l dist.zip` must show a nonzero size for `dist/index.html`. Do not upload this copy to the panel; the panel downloads the same asset itself.
 
-Select exactly the downloaded filename; do not check unrelated release assets.
-Run in the same Bash session and download directory:
+## Install
 
-```bash
-awk -v file="$asset" '$2 == file || $2 == "*" file { print; count++ }
-  END { if (count != 1) exit 1 }' SHA256SUMS > selected.SHA256SUMS
-sha256sum -c selected.SHA256SUMS
-```
+Tell the user to do this in the admin panel, and wait until they confirm each step:
 
-Stop on missing/duplicate entries or a checksum mismatch; never extract or upload
-an unverified zip. Inspect `unzip -l "$asset"` before extracting into a fresh stage:
-Komari must contain `komari-theme.json`, `preview.png` and `dist/` (including
-`dist/sw.js`); Nezha must contain `zool-dist/index.html` and `zool-dist/config.js`.
-Reject unexpected absolute paths or parent-directory traversal entries.
+1. **设置 → 前端管理 → 用户前端**
+2. Repository: `https://github.com/bluenight91/zool-theme`
+3. Install tag `$tag` (the asset is `dist.zip`)
+4. **启用** that version
 
-## Back up
-
-Use unique, timestamped backup filenames outside the served theme directory and
-record their absolute paths. For a first install, record any absent directory
-instead of attempting to archive it. Verify tar archives with `tar -tf`.
-
-Komari: archive the existing `<data>/theme/zool-theme` directory:
-
-```bash
-tar -czf '<backup>/zool-komari-<timestamp>.tar.gz' -C '<data>/theme' zool-theme
-```
-
-Before switching themes, also take a consistent SQLite backup (not a live file copy):
-
-```bash
-sqlite3 '<data>/komari.db' ".backup '<backup>/komari-<timestamp>.db'"
-sqlite3 '<backup>/komari-<timestamp>.db' 'PRAGMA integrity_check;'
-```
-
-Require `ok` from the integrity check. Record the original active theme.
-
-Nezha: from `<compose>`, back up both the existing theme and Compose file:
-
-```bash
-tar -czf '<backup>/zool-nezha-<timestamp>.tar.gz' zool-dist
-cp -p docker-compose.yaml '<backup>/docker-compose-<timestamp>.yaml'
-```
-
-Keep the existing `zool-dist/config.js` settings for the upgrade.
-
-## Komari
-
-**Method A — admin panel (recommended):** Open **Settings → Theme**, upload the
-verified zip and enable **ZOOL**. For upgrades, ensure the uploader preserves old
-`dist/assets/` files; if that cannot be established, use Method B with server access.
-
-**Method B — server shell:** Extract the verified zip into `<stage>`, confirm
-`komari-theme.json` has `short: zool-theme` and the requested version, then overlay:
-
-```bash
-unzip '<download>/zool-komari-v<version>.zip' -d '<stage>'
-mkdir -p '<data>/theme/zool-theme'
-cp -R '<stage>/.' '<data>/theme/zool-theme/'
-```
-
-The directory name must be `zool-theme`, matching the manifest's `short`. Select
-**ZOOL** in the admin panel afterwards; with shell-only access, ask the operator to
-perform this selection. Do not directly edit the database to activate the theme.
-If a restart is needed, obtain confirmation before restarting the identified container.
-
-For upgrades, **overlay files only; never delete old `dist/assets/` files**. Browsers
-holding old HTML still need those hashed assets. Preserve the shipped `dist/sw.js`:
-Komari has a built-in PWA, and ZOOL's worker replaces the stale worker, clears old
-caches, unregisters itself and reloads clients. Do not delete `sw.js`.
-
-## Nezha
-
-Read `<compose>/data/config.yaml` first and record its exact `user_template` value,
-commonly `user-dist` or `nazhua-dist`. Do not modify `config.yaml`; if the value is
-absent or unclear, stop and resolve it with the operator.
-
-Extract the verified zip into `<stage>` and overlay its `zool-dist/` next to the
-Compose file:
-
-```bash
-unzip '<download>/zool-nezha-v<version>.zip' -d '<stage>'
-mkdir -p '<compose>/zool-dist'
-cp -R '<stage>/zool-dist/.' '<compose>/zool-dist/'
-```
-
-Upgrades must preserve all old `assets/` files. Restore the backed-up runtime
-settings into `zool-dist/config.js` before serving the upgrade; settings live there,
-not in `data/config.yaml`.
-
-Add only this mount to the existing `dashboard` service's `volumes`, substituting
-the exact template name; preserve all other mounts and configuration:
-
-```yaml
-- ./zool-dist:/dashboard/<user_template>:ro
-```
-
-If the mount already exists, do not duplicate it. From `<compose>`, validate with
-`docker compose config --quiet`, then, after confirmation for any container
-restart/recreation, run `docker compose up -d`. A file-only upgrade on an unchanged
-mount does not require a restart.
+Do not restart the dashboard. Do not change `data/config.yaml`.
 
 ## Verify
-
-For Komari, confirm the API theme is `zool-theme`:
-
-```bash
-curl -s 'https://<host>/api/public' | jq -er '.data.theme'
-```
-
-For either panel, confirm the generator reports the installed release version:
 
 ```bash
 curl -s 'https://<host>/' | grep -o 'generator" content="zool v[0-9.]*'
 ```
 
-Open the homepage, confirm it renders without a blank screen, and hard-refresh once.
-Check that assets load successfully. If browser access is unavailable, ask the user
-to perform this check and report it as pending, not verified.
+The version must match `$tag` without the leading `v`. Open the homepage, confirm it renders, and hard-refresh once. If browser access is unavailable, ask the user to do this and report it as pending, not verified.
 
 ## Roll back
 
-Overlay the recorded backup without deleting the current directory or hashed assets:
+In **设置 → 前端管理 → 用户前端**, enable the frontend that was active before (the built-in one is `user-dist`). Confirm the generator meta no longer reports the ZOOL version you just installed, or that it reports the version you returned to.
 
-```bash
-# Komari
-tar -xzf '<backup>/zool-komari-<timestamp>.tar.gz' -C '<data>/theme'
-# Nezha
-tar -xzf '<backup>/zool-nezha-<timestamp>.tar.gz' -C '<compose>'
+## Custom code
+
+Panel name, logo and description are not files in the zip. They go in **设置 → 自定义代码** for the user frontend:
+
+```html
+<script>
+  window.ZoolConfig = { siteTitle: "我的面板" };
+  window.CustomLogo = "https://example.com/logo.png";
+  window.CustomDesc = "一行描述";
+  window.DisableAnimatedMan = "true";
+  window.ShowNetTransfer = "true";
+  window.ForceTheme = "dark";
+</script>
+<style>
+  [data-zool="wordmark"] { display: none; }
+</style>
 ```
 
-Komari file rollback needs no database change. If the active theme was switched,
-select the original theme in the admin panel. Alternatively, after explicit
-confirmation and coordinating a stopped database writer, restore the SQLite backup
-with `sqlite3 '<data>/komari.db' ".restore '<backup>/komari-<timestamp>.db'"`;
-this also rolls back other database changes since the backup.
+- `siteTitle` replaces the site name in the header and the document title. Assigning `window.ZoolConfig = { siteTitle }` overrides only those keys; keys left out stay as `config.js` set them.
+- `CustomLogo` must be an `http` or `https` URL. A broken image falls back to the title alone.
+- `CustomDesc` is one line under the home-page title.
+- `ForceTheme` is `light` or `dark`.
+- `DisableAnimatedMan` set to true, or the style above, hides the footer wordmark.
+- `ShowNetTransfer` set to false hides cumulative transfer. Live rates stay. `"true"` and `"false"` are accepted.
 
-Nezha: either restore the tar to return to the prior ZOOL version, or remove only the
-added ZOOL volume line to return to the built-in template. The Compose backup records
-the original configuration; preserve unrelated subsequent edits. After confirmation,
-run `docker compose up -d` from `<compose>`. For a first install without a theme tar,
-use the original-theme/mount-removal route. Repeat verification for the restored theme.
+Other `window.ZoolConfig` keys are in the theme README. Custom code runs after `config.js` and wins.
 
 ## Report
 
-Tell the user the panel and installed ZOOL version, verification results (including
-any pending checks), absolute backup paths and exact rollback commands using the
-recorded paths. Never report success solely because file copying succeeded.
+Tell the user the installed tag, the verification result (including any pending browser check), and the rollback step: re-enable the previous frontend from **前端管理**. Never report success only because the zip downloaded.

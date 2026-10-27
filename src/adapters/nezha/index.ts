@@ -1,3 +1,5 @@
+import { readRuntime, resetRuntimeGlobals } from '@/core/custom-code'
+import { injectCustomCode } from '@/core/inject-custom-code'
 import { request, resilientSocket, wsUrl } from '@/core/http'
 import type {
   LiveEvent,
@@ -69,7 +71,7 @@ export interface NezhaGroup {
 }
 
 interface NezhaSetting {
-  config?: { site_name?: string; language?: string }
+  config?: { site_name?: string; language?: string; custom_code?: string }
   tsdb_enabled?: boolean
 }
 
@@ -356,11 +358,19 @@ export const nezha: MonitorAdapter = {
   async loadSite(): Promise<SiteInfo> {
     const res = await request<Common<NezhaSetting>>('/api/v1/setting').catch(() => null)
     const cfg = res?.data?.config ?? {}
+    // config.js has already run. Restore it, then let the administrator's custom code override it.
+    resetRuntimeGlobals(window)
+    try {
+      await injectCustomCode(typeof cfg.custom_code === 'string' ? cfg.custom_code : '')
+    } catch (error) {
+      console.error('[zool-theme] custom code failed', error)
+    }
+    const runtime = readRuntime(window)
     return {
       name: (cfg.site_name ?? '').trim() || 'Nezha',
-      description: '',
+      description: runtime.description,
       language: cfg.language?.replace('_', '-'),
-      settings: window.ZoolConfig ?? {},
+      settings: runtime.settings,
       recordHours: 0,
       oauth: false,
       passwordLogin: true,

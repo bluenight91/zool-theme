@@ -1,54 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { mapClientsFrame, mapNode, mapRecord, type KomariClientsFrame, type KomariNode, type KomariRecord } from '../src/adapters/komari'
 import { groupIndex, mapFrame, mapState, parsePublicNote, type NezhaFrame, type NezhaGroup } from '../src/adapters/nezha'
-import komariNodes from './fixtures/komari-nodes.json'
-import komariFrame from './fixtures/komari-clients-frame.json'
-import komariRecords from './fixtures/komari-records.json'
 import nezhaFrame from './fixtures/nezha-frame.json'
 import nezhaGroups from './fixtures/nezha-groups.json'
-
-describe('komari adapter', () => {
-  const nodes = (komariNodes.data as KomariNode[]).map(mapNode)
-
-  it('maps every node from /api/nodes', () => {
-    expect(nodes).toHaveLength(17)
-    for (const n of nodes) {
-      expect(n.id).toMatch(/^[0-9a-f-]{36}$/)
-      expect(n.memTotal).toBeGreaterThan(0)
-      expect(['sum', 'max', 'min', 'up', 'down']).toContain(n.trafficLimitType)
-    }
-  })
-
-  it('turns emoji regions into ISO codes', () => {
-    const regions = new Set(nodes.map((n) => n.region))
-    expect(regions).toContain('US')
-    expect(regions).toContain('CN')
-    for (const r of regions) expect(r).toMatch(/^([A-Z]{2})?$/)
-  })
-
-  it('treats the zero time as "no expiry"', () => {
-    expect(mapNode({ uuid: 'x', name: 'x', expired_at: '0001-01-01T00:00:00Z' }).expiredAt).toBeNull()
-    expect(mapNode({ uuid: 'x', name: 'x', expired_at: '2030-01-01T00:00:00Z' }).expiredAt).toBe(Date.parse('2030-01-01T00:00:00Z'))
-  })
-
-  it('maps a /api/clients frame to snapshots', () => {
-    const snaps = mapClientsFrame(komariFrame as KomariClientsFrame)
-    const ids = Object.keys(snaps)
-    expect(ids.length).toBe(17)
-    const s = snaps[ids[0]]
-    expect(s.online).toBe(true)
-    expect(s.memTotal).toBeGreaterThan(0)
-    expect(s.at).toBeGreaterThan(0)
-  })
-
-  it('maps history records with in/out swapped to down/up', () => {
-    const r = (komariRecords.data.records as KomariRecord[])[0]
-    const p = mapRecord(r)
-    expect(p.netDown).toBe(r.net_in)
-    expect(p.netUp).toBe(r.net_out)
-    expect(p.at).toBe(Date.parse(r.time))
-  })
-})
 
 describe('nezha adapter', () => {
   const groups = groupIndex(nezhaGroups.data as NezhaGroup[])

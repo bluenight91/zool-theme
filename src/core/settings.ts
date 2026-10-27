@@ -11,9 +11,8 @@ export type Density = 'comfortable' | 'compact'
 export type LanguagePreference = 'auto' | 'en' | 'zh-CN' | 'zh-TW' | 'ja'
 
 /**
- * Theme settings. On Komari these are edited in the admin panel (managed configuration
- * declared in komari-theme.json) and read from /api/public; on Nezha they come from
- * `window.ZoolConfig` in config.js. Keys must stay in sync with komari-theme.json.
+ * Theme settings. On Nezha they come from `window.ZoolConfig` in config.js, then from the
+ * dashboard's custom code, which runs afterwards and wins. See `readRuntime`.
  */
 export interface ThemeSettings {
   defaultAppearance: Appearance
@@ -21,6 +20,8 @@ export interface ThemeSettings {
   defaultDensity: Density
   defaultLanguage: LanguagePreference
   siteTitle: string
+  /** Header image. Only http(s) URLs survive `safeLogoUrl`. */
+  logo: string
   showOverview: boolean
   showCost: boolean
   showRegions: boolean
@@ -30,8 +31,12 @@ export interface ThemeSettings {
   defaultGrouped: boolean
   showBilling: boolean
   showOffline: boolean
+  /** Cumulative transfer figures. Live rates stay either way. */
+  showNetTransfer: boolean
   hiddenNodes: string[]
   hideAdminEntry: boolean
+  /** Hide the footer wordmark. The element stays so custom CSS can target it. */
+  hideWordmark: boolean
   footerNote: string
 }
 
@@ -41,6 +46,7 @@ export const DEFAULT_SETTINGS: ThemeSettings = {
   defaultDensity: 'comfortable',
   defaultLanguage: 'auto',
   siteTitle: '',
+  logo: '',
   showOverview: true,
   showCost: true,
   showRegions: true,
@@ -48,9 +54,25 @@ export const DEFAULT_SETTINGS: ThemeSettings = {
   defaultGrouped: false,
   showBilling: true,
   showOffline: true,
+  showNetTransfer: true,
   hiddenNodes: [],
   hideAdminEntry: false,
+  hideWordmark: false,
   footerNote: '',
+}
+
+/** An image URL the page can put in the header. Anything else, including `javascript:`, is dropped. */
+export function safeLogoUrl(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  try {
+    const url = new URL(trimmed)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return ''
+    return url.href
+  } catch {
+    return ''
+  }
 }
 
 const oneOf = <T extends string>(v: unknown, options: readonly T[], fallback: T): T =>
@@ -87,6 +109,7 @@ export function normalizeSettings(raw: unknown): ThemeSettings {
     defaultDensity: oneOf(r.defaultDensity, ['comfortable', 'compact'], d.defaultDensity),
     defaultLanguage: oneOf(r.defaultLanguage, ['auto', 'en', 'zh-CN', 'zh-TW', 'ja'], d.defaultLanguage),
     siteTitle: str(r.siteTitle, d.siteTitle).trim(),
+    logo: safeLogoUrl(r.logo),
     showOverview: bool(r.showOverview, d.showOverview),
     showCost: bool(r.showCost, d.showCost),
     showRegions: bool(r.showRegions, d.showRegions),
@@ -94,8 +117,10 @@ export function normalizeSettings(raw: unknown): ThemeSettings {
     defaultGrouped: bool(r.defaultGrouped, d.defaultGrouped),
     showBilling: bool(r.showBilling, d.showBilling),
     showOffline: bool(r.showOffline, d.showOffline),
+    showNetTransfer: bool(r.showNetTransfer, d.showNetTransfer),
     hiddenNodes: list(r.hiddenNodes),
     hideAdminEntry: bool(r.hideAdminEntry, d.hideAdminEntry),
+    hideWordmark: bool(r.hideWordmark, d.hideWordmark),
     footerNote: str(r.footerNote, d.footerNote).trim(),
   }
 }

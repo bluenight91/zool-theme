@@ -394,6 +394,7 @@ export function NodeCard({ node, snap, tick, pending }: { node: NodeInfo; snap?:
   const uptime = useUptime()
   const billing = useBilling()
   const showBilling = useStore((s) => s.settings.showBilling)
+  const showNetTransfer = useStore((s) => s.settings.showNetTransfer)
 
   const live = useMemo(() => {
     const points = getLive(node.id)
@@ -529,20 +530,26 @@ export function NodeCard({ node, snap, tick, pending }: { node: NodeInfo; snap?:
                   <Speed value={snap!.netDown} />
                 </span>
               </span>
-              <span className="flex min-w-0 items-center gap-1 text-[13px] leading-5 whitespace-nowrap">
-                {/* the label gives way first when a long locale, a quota and five-digit totals meet */}
-                <span className="min-w-0 truncate text-muted">{t('metric.traffic')}</span>
-                <ArrowUp size={12} className="shrink-0 text-muted" aria-hidden />
-                <Bytes value={snap!.totalUp} />
-                <span className="text-muted">·</span>
-                <ArrowDown size={12} className="shrink-0 text-muted" aria-hidden />
-                <Bytes value={snap!.totalDown} />
-                {quota !== null && (
-                  <span className={`num ml-auto shrink-0 ${quota >= 95 ? 'text-danger' : quota >= 80 ? 'text-warn' : 'text-muted'}`}>
-                    {formatPercent(quota)}%
-                  </span>
-                )}
-              </span>
+              {(showNetTransfer || quota !== null) && (
+                <span className="flex min-w-0 items-center gap-1 text-[13px] leading-5 whitespace-nowrap">
+                  {/* the label gives way first when a long locale, a quota and five-digit totals meet */}
+                  {showNetTransfer && (
+                    <>
+                      <span className="min-w-0 truncate text-muted">{t('metric.traffic')}</span>
+                      <ArrowUp size={12} className="shrink-0 text-muted" aria-hidden />
+                      <Bytes value={snap!.totalUp} />
+                      <span className="text-muted">·</span>
+                      <ArrowDown size={12} className="shrink-0 text-muted" aria-hidden />
+                      <Bytes value={snap!.totalDown} />
+                    </>
+                  )}
+                  {quota !== null && (
+                    <span className={`num shrink-0 ${showNetTransfer ? 'ml-auto' : ''} ${quota >= 95 ? 'text-danger' : quota >= 80 ? 'text-warn' : 'text-muted'}`}>
+                      {formatPercent(quota)}%
+                    </span>
+                  )}
+                </span>
+              )}
             </span>
 
             </>}

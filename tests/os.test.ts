@@ -3,7 +3,7 @@ import { OS_KEYS } from '../src/core/os.manifest'
 import { OS_ICON_KEYS, osKey, type OsKey } from '../src/core/os'
 
 const cases: [string, OsKey][] = [
-  // Komari product descriptions.
+  // OS product descriptions.
   ['Debian GNU/Linux 13 (trixie)', 'debian'],
   ['Debian GNU/Linux 12 (bookworm)', 'debian'],
   ['Debian GNU/Linux 11 (bullseye)', 'debian'],

@@ -1,74 +1,56 @@
 #!/usr/bin/env node
-// Packs the built themes into release/:
-//   zool-komari-v<version>.zip  → upload in Komari admin (Settings → Theme), or unzip into data/theme/zool-theme/
-//   zool-nezha-v<version>.zip   → unzip and mount over a Nezha template directory (see docs/install-nezha.md)
-// Run `pnpm build` first.
+// Packs the Nezha build into release/dist.zip.
+// The archive root is `dist/` with a nonempty `dist/index.html`, which is the only
+// shape 设置 → 前端管理 will install. Run `pnpm build` first.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { join, relative } from 'node:path'
+import { assertDistZip } from './check-dist-zip.mjs'
 
 const root = new URL('..', import.meta.url).pathname
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const out = join(root, 'release')
-const stage = join(out, '.stage')
+const dist = join(root, 'dist')
 
-function assertBuilt(dir) {
-  if (!existsSync(join(dir, 'index.html'))) {
-    console.error(`✗ ${dir} is missing, run \`pnpm build\` first`)
-    process.exit(1)
-  }
-  const maps = walk(dir).filter((f) => f.endsWith('.map'))
-  if (maps.length) {
-    console.error(`✗ source maps found in ${dir}: ${maps.join(', ')}`)
-    process.exit(1)
-  }
-}
-
-function walk(d, acc = []) {
-  for (const f of readdirSync(d)) {
-    const p = join(d, f)
-    if (statSync(p).isDirectory()) walk(p, acc)
-    else acc.push(p)
+function walk(dir, acc = []) {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name)
+    const stat = lstatSync(path)
+    if (stat.isSymbolicLink()) {
+      console.error(`✗ symlink in dist/: ${relative(dist, path)}`)
+      process.exit(1)
+    }
+    if (stat.isDirectory()) walk(path, acc)
+    else acc.push(path)
   }
   return acc
 }
 
-function zip(cwd, name, entries) {
-  const file = join(out, name)
-  rmSync(file, { force: true })
-  execFileSync('zip', ['-r', '-X', '-q', file, ...entries], { cwd })
-  const sha = createHash('sha256').update(readFileSync(file)).digest('hex')
-  const size = (statSync(file).size / 1024).toFixed(0)
-  console.log(`✓ ${name}  ${size} KB  sha256 ${sha}`)
-  return { name, sha, size }
+if (!existsSync(join(dist, 'index.html')) || statSync(join(dist, 'index.html')).size === 0) {
+  console.error('✗ dist/index.html is missing, run `pnpm build` first')
+  process.exit(1)
+}
+const files = walk(dist)
+const maps = files.filter((file) => file.endsWith('.map'))
+if (maps.length) {
+  console.error(`✗ source maps found in dist/: ${maps.map((file) => relative(dist, file)).join(', ')}`)
+  process.exit(1)
 }
 
-rmSync(stage, { recursive: true, force: true })
-mkdirSync(stage, { recursive: true })
+mkdirSync(out, { recursive: true })
+const zipPath = join(out, 'dist.zip')
+rmSync(zipPath, { force: true })
+// Paths inside the archive must be `dist/...`, so zip from the repo root.
+execFileSync('zip', ['-r', '-X', '-q', zipPath, 'dist'], { cwd: root })
 
-// Komari: komari-theme.json + preview.png + dist/ at the zip root.
-const komariDist = join(root, 'dist/komari')
-assertBuilt(komariDist)
-const k = join(stage, 'komari')
-mkdirSync(k)
-const manifest = JSON.parse(readFileSync(join(root, 'targets/komari/komari-theme.json'), 'utf8'))
-manifest.version = pkg.version
-writeFileSync(join(k, 'komari-theme.json'), `${JSON.stringify(manifest, null, 2)}\n`)
-const preview = join(root, 'docs/screenshots/preview.png')
-if (existsSync(preview)) cpSync(preview, join(k, 'preview.png'))
-else console.warn('! docs/screenshots/preview.png not found, packing without preview')
-cpSync(komariDist, join(k, 'dist'), { recursive: true })
+const listing = execFileSync('unzip', ['-Z1', zipPath], { encoding: 'utf8' })
+  .split('\n')
+  .map((line) => line.trim())
+  .filter(Boolean)
+assertDistZip(listing, statSync(join(dist, 'index.html')).size)
 
-// Nezha: a single folder that replaces a user template directory.
-const nezhaDist = join(root, 'dist/nezha')
-assertBuilt(nezhaDist)
-const n = join(stage, 'nezha')
-cpSync(nezhaDist, join(n, 'zool-dist'), { recursive: true })
-
-const results = [
-  zip(k, `zool-komari-v${pkg.version}.zip`, readdirSync(k)),
-  zip(n, `zool-nezha-v${pkg.version}.zip`, ['zool-dist']),
-]
-writeFileSync(join(out, 'SHA256SUMS'), results.map((r) => `${r.sha}  ${r.name}`).join('\n') + '\n')
-rmSync(stage, { recursive: true, force: true })
+const sha = createHash('sha256').update(readFileSync(zipPath)).digest('hex')
+const size = (statSync(zipPath).size / 1024).toFixed(0)
+console.log(`✓ dist.zip  ${size} KB  ${listing.length} entries  sha256 ${sha}  (theme v${pkg.version})`)
+writeFileSync(join(out, 'SHA256SUMS'), `${sha}  dist.zip\n`)

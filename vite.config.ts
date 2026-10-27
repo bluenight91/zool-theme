@@ -5,11 +5,11 @@ import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-type Target = 'komari' | 'nezha' | 'demo'
+type Target = 'nezha' | 'demo'
 
 /**
- * Dev server upstream, e.g. `.env.komari.local` → `ZOOL_UPSTREAM=https://komari.example.com`.
- * Without one, `pnpm dev` / `pnpm dev:nezha` fall back to demo data.
+ * Dev server upstream, e.g. `.env.nezha.local` → `ZOOL_UPSTREAM=https://status.example.com`.
+ * Without one, `pnpm dev` falls back to demo data.
  */
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
@@ -18,8 +18,8 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 const src = (p: string) => fileURLToPath(new URL(`./src/${p}`, import.meta.url))
 
 /**
- * Nezha ships a `config.js` next to index.html (same idea as Nazhua), so site owners
- * can tweak the theme without rebuilding. Komari reads settings from /api/public instead.
+ * Nezha ships a `config.js` next to index.html, so site owners can tweak the theme
+ * without rebuilding. The dashboard's custom code runs later and overrides it.
  */
 function nezhaRuntimeConfig(target: Target): Plugin {
   const file = fileURLToPath(new URL('./targets/nezha/config.js', import.meta.url))
@@ -27,11 +27,7 @@ function nezhaRuntimeConfig(target: Target): Plugin {
     name: 'zool:nezha-config',
     transformIndexHtml(html) {
       if (target !== 'nezha') return html
-      // Komari rewrites these two strings server-side; Nezha serves the file as-is.
-      return html
-        .replace('<title>Komari Monitor</title>', '<title>Status</title>')
-        .replace('<meta name="description" content="A simple server monitor tool." />', '<meta name="description" content="Server status" />')
-        .replace('<!-- zool:runtime-config -->', '<script src="/config.js"></script>')
+      return html.replace('<!-- zool:runtime-config -->', '<script src="/config.js"></script>')
     },
     configureServer(server) {
       if (target !== 'nezha') return
@@ -50,10 +46,9 @@ function nezhaRuntimeConfig(target: Target): Plugin {
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), 'ZOOL_')
   const upstream = mode === 'demo' ? '' : (env.ZOOL_UPSTREAM ?? '')
-  const requested: Target = mode === 'nezha' || mode === 'demo' ? mode : 'komari'
-  // Builds always target the real backend; only the dev server swaps in demo data.
+  const requested: Target = mode === 'demo' ? 'demo' : 'nezha'
+  // Builds always target Nezha; only the dev server swaps in demo data when no panel is configured.
   const target: Target = command === 'serve' && !upstream ? 'demo' : requested
-  const outDir = requested
 
   const proxied = (path: string) => ({
     [path]: {
@@ -61,7 +56,7 @@ export default defineConfig(({ mode, command }) => {
       changeOrigin: true,
       ws: true,
       secure: true,
-      // Both backends check the Origin of WebSocket upgrades.
+      // Nezha checks the Origin of WebSocket upgrades.
       headers: { Origin: upstream, Referer: `${upstream}/` },
     },
   })
@@ -91,7 +86,7 @@ export default defineConfig(({ mode, command }) => {
         : undefined,
     },
     build: {
-      outDir: `dist/${outDir}`,
+      outDir: 'dist',
       emptyOutDir: true,
       sourcemap: false,
       assetsInlineLimit: 0,
