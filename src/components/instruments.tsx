@@ -191,7 +191,9 @@ export function BlockGrid({
   // costs its own width *and* one more 2px gap. Counting only the 3px left the blocks 2px
   // wider than their slot, which is how this overflowed a second time.
   const extra = swapBlocks > 0 ? 3 + 2 : 0
-  const h = height - 3
+  // Stretched bars sit next to CPU ticks of the same `height`. A shorter cell made the
+  // home-page memory bar look shorter than the CPU bar beside it.
+  const h = stretch ? height : height - 3
   const w = box ? fitCells(box, cells, 2, fill ? box : h, fill ? 1 : 2, extra) : h
   const sweep = useSweep(filled, animate)
   return (

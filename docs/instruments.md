@@ -62,7 +62,8 @@ In the ledger and on the node page, at most twelve blocks keep the reading scann
 grows with the machine (1, 2, 4, 8… GB per block) and is reported next to the reading rather
 than left to be guessed. Swap gets its own
 hollow blocks after a gap, so "swapping" reads as a different material, not a longer bar.
-Memory warns at 70%, alerts at 90%. Cards use twelve equal cells stretched across the column;
+Memory warns at 70%, alerts at 90%. A stretched bar is as tall as the CPU ticks beside it.
+Cards use twelve equal cells stretched across the column;
 capacity is written below the percentage. On the node page, memory and disk use the same
 ten-cell bar as CPU, so a small disk is not a shorter or differently shaped meter. Disk
 thresholds are 80% / 92%.
