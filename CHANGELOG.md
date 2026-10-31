@@ -2,7 +2,7 @@
 
 ## 1.1.6 — 2026-10-31
 
-- **Usage bars.** On a node page, CPU, memory and disk stretch to the same width. A 2-core or 1 GB machine is no longer a shorter bar; the coloured share is the percentage.
+- **Usage bars.** On a node page, CPU, memory and disk are the same ten cells, the same height, and the same length. The coloured cells are the percentage. A small machine no longer draws a short bar, and the bar does not stretch across the column.
 
 ## 1.1.5 — 2026-10-27
 

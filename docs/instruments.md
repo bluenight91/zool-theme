@@ -48,8 +48,8 @@ reads as plain percent.
 
 - Up to 3px wide and 2px apart, 11px tall in comfortable density, 9px in compact. The width is
   derived from the 68px box, so a 32-core machine thins its ticks instead of spilling into the
-  next column. On the node page the same ticks stretch across the stat column, so a 2-core
-  machine is the same length as a 32-core one and the coloured share is the percentage.
+  next column. The node page does not use these ticks for the percentage: CPU, memory and disk
+  there share one ten-cell bar of fixed size, and the coloured cells are the percentage.
 - A partial tick is a solid `.cell-fill` scaled over its empty track (see Motion).
 - The notch marks `load1 / cores`; past 1.0 the run is longer than the machine is wide.
 - CPU warns at 50%, alerts at 85%, using the displayed value.
@@ -63,9 +63,9 @@ grows with the machine (1, 2, 4, 8… GB per block) and is reported next to the 
 than left to be guessed. Swap gets its own
 hollow blocks after a gap, so "swapping" reads as a different material, not a longer bar.
 Memory warns at 70%, alerts at 90%. Cards use twelve equal cells stretched across the column;
-capacity is written below the percentage. On the node page the capacity blocks stretch to the
-same column width, so a 1 GB machine is not a shorter bar than a 64 GB one. Disk uses blocks
-too, with thresholds of 80% / 92%.
+capacity is written below the percentage. On the node page, memory and disk use the same
+ten-cell bar as CPU, so a small disk is not a shorter or differently shaped meter. Disk
+thresholds are 80% / 92%.
 
 ## Spark — network
 

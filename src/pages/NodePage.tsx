@@ -11,8 +11,8 @@ import { Chart, type ChartSeries } from '@/components/Chart'
 import { HourGrid } from '@/components/HourGrid'
 import { OnlineHistory } from '@/components/OnlineHistory'
 import { togglePing } from '@/core/ping'
-import { BlockGrid, levelFor, MirrorSpark, TickBar } from '@/components/instruments'
-import { coreTicks, liveSpanMinutes, memoryBlocks, recentBuckets } from '@/core/live'
+import { BlockGrid, levelFor, MirrorSpark } from '@/components/instruments'
+import { liveSpanMinutes, recentBuckets } from '@/core/live'
 import { Popover } from '@/components/Popover'
 import { Bytes, Percent, RegionTag, Speed, StatusDot, useBilling, useRelativeTime, useUptime } from '@/components/bits'
 
@@ -22,6 +22,10 @@ import { Bytes, Percent, RegionTag, Speed, StatusDot, useBilling, useRelativeTim
  * One reading, enlarged. `instrument` carries the same shape the ledger row uses, so a node
  * looks like itself in both places; `meter` stays for readings that have no instrument.
  */
+/** Same segmented meter for CPU, memory and disk: ten cells, not stretched to the column. */
+const METER_CELLS = 10
+const meterFilled = (percent: number) => Math.max(0, Math.min(METER_CELLS, (percent / 100) * METER_CELLS))
+
 function Stat({
   label,
   children,
@@ -473,11 +477,6 @@ export function NodePage({ id }: { id: string }) {
   const week = useWeekHistory(nodeId)
   const liveTick = useStore((s) => s.liveVersion)
   const fed = useStore((s) => s.fed)
-  const cores = coreTicks(snap?.cpu ?? 0, node?.cpuCores ?? 0)
-  const mem = memoryBlocks(snap?.memUsed ?? 0, snap?.memTotal || node?.memTotal || 0, node?.swapTotal ?? 0)
-  const tickGap = cores.ticks > 16 ? 2 : 4
-  // Disk gets blocks too: one shape for "how much of a fixed thing is used".
-  const disk = memoryBlocks(snap?.diskUsed ?? 0, snap?.diskTotal || node?.diskTotal || 0, 0, 10)
   // The same fifteen-minute buffer the ledger draws, so the page opens on a familiar shape.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const liveNet = useMemo(() => {
@@ -561,14 +560,11 @@ export function NodePage({ id }: { id: string }) {
           label={t('metric.cpu')}
           sub={node.cpuCores ? t('metric.cores', { count: node.cpuCores }) : undefined}
           instrument={
-            <TickBar
+            <BlockGrid
               animate
-              stretch
-              filled={cores.filled}
-              ticks={cores.ticks}
-              notch={node.cpuCores > 0 && snap ? Math.min(1, snap.load1 / node.cpuCores) : undefined}
-              height={16}
-              gap={tickGap}
+              filled={meterFilled(snap?.cpu ?? 0)}
+              blocks={METER_CELLS}
+              height={14}
               level={levelFor('cpu', snap?.cpu ?? 0)}
               label={t('metric.cpu')}
             />
@@ -582,11 +578,9 @@ export function NodePage({ id }: { id: string }) {
           instrument={
             <BlockGrid
               animate
-              stretch
-              filled={mem.filled}
-              blocks={mem.blocks}
-              swapBlocks={mem.swapBlocks}
-              height={16}
+              filled={meterFilled(snap ? ratio(snap.memUsed, memTotal) : 0)}
+              blocks={METER_CELLS}
+              height={14}
               level={levelFor('memory', snap ? ratio(snap.memUsed, memTotal) : 0)}
               label={t('metric.memory')}
             />
@@ -600,10 +594,9 @@ export function NodePage({ id }: { id: string }) {
           instrument={
             <BlockGrid
               animate
-              stretch
-              filled={disk.filled}
-              blocks={disk.blocks}
-              height={16}
+              filled={meterFilled(snap ? ratio(snap.diskUsed, diskTotal) : 0)}
+              blocks={METER_CELLS}
+              height={14}
               level={levelFor('disk', snap ? ratio(snap.diskUsed, diskTotal) : 0)}
               label={t('metric.disk')}
             />
