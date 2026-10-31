@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.6 — 2026-10-31
+
+- **Usage bars.** On a node page, CPU, memory and disk stretch to the same width. A 2-core or 1 GB machine is no longer a shorter bar; the coloured share is the percentage.
+
 ## 1.1.5 — 2026-10-27
 
 - **Sign-in.** The home page lists the OAuth providers the dashboard has configured, next to the password form. `window.ZoolConfig.loginMode` chooses `both`, `password`, `oauth`, or `dashboard` (the panel login page). The password block is `[data-zool-login="password"]` and the provider block is `[data-zool-login="oauth"]`.

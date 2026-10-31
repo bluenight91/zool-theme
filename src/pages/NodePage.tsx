@@ -37,7 +37,7 @@ function Stat({
     <div className="min-w-0 py-5 md:px-5 md:first:pl-0">
       <p className="text-[13px] text-muted">{label}</p>
       <div className="mt-2 truncate text-[26px] leading-none font-light tracking-[-0.03em]">{children}</div>
-      {instrument && <div className="mt-3">{instrument}</div>}
+      {instrument && <div className="mt-3 w-full">{instrument}</div>}
       {sub && <p className="num mt-2 truncate text-[12px] text-muted">{sub}</p>}
     </div>
   )
@@ -563,14 +563,11 @@ export function NodePage({ id }: { id: string }) {
           instrument={
             <TickBar
               animate
+              stretch
               filled={cores.filled}
               ticks={cores.ticks}
               notch={node.cpuCores > 0 && snap ? Math.min(1, snap.load1 / node.cpuCores) : undefined}
               height={16}
-              /* Fit the ticks to a 150px budget: four cores get fat ticks so the reading is
-                 not a stub next to a 26px number, 32 cores get thin ones and a tighter gap
-                 instead of spilling across the divider into memory. */
-              width={Math.max(2, Math.min(18, Math.floor((150 - (cores.ticks - 1) * tickGap) / cores.ticks)))}
               gap={tickGap}
               level={levelFor('cpu', snap?.cpu ?? 0)}
               label={t('metric.cpu')}
@@ -585,12 +582,11 @@ export function NodePage({ id }: { id: string }) {
           instrument={
             <BlockGrid
               animate
+              stretch
               filled={mem.filled}
               blocks={mem.blocks}
               swapBlocks={mem.swapBlocks}
               height={16}
-              /* Same 150px budget the ticks get, so the two readings stay the same size. */
-              box={150}
               level={levelFor('memory', snap ? ratio(snap.memUsed, memTotal) : 0)}
               label={t('metric.memory')}
             />
@@ -604,10 +600,10 @@ export function NodePage({ id }: { id: string }) {
           instrument={
             <BlockGrid
               animate
+              stretch
               filled={disk.filled}
               blocks={disk.blocks}
               height={16}
-              box={150}
               level={levelFor('disk', snap ? ratio(snap.diskUsed, diskTotal) : 0)}
               label={t('metric.disk')}
             />
